@@ -1,10 +1,7 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class More_Buttons : MonoBehaviour
 {
-
     public void Patr_btn()
     {
         Application.OpenURL("http://patreon.com/unitystation");

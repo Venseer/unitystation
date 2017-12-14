@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
+﻿using UnityEngine;
 
 namespace Doors
 {
@@ -13,6 +10,5 @@ namespace Doors
         public abstract void OpenDoor();
         public abstract void CloseDoor();
         public abstract void AccessDenied();
-
     }
 }

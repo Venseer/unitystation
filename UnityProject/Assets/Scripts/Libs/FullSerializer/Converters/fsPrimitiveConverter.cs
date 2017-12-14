@@ -30,9 +30,9 @@ namespace FullSerializer.Internal
         private static bool UseInt64(Type type)
         {
             return type == typeof(sbyte) || type == typeof(byte) ||
-                   type == typeof(Int16) || type == typeof(UInt16) ||
-                   type == typeof(Int32) || type == typeof(UInt32) ||
-                   type == typeof(Int64) || type == typeof(UInt64);
+                   type == typeof(short) || type == typeof(ushort) ||
+                   type == typeof(int) || type == typeof(uint) ||
+                   type == typeof(long) || type == typeof(ulong);
         }
 
         private static bool UseDouble(Type type)
@@ -50,23 +50,24 @@ namespace FullSerializer.Internal
 
         public override fsResult TrySerialize(object instance, out fsData serialized, Type storageType)
         {
-            var instanceType = instance.GetType();
+            Type instanceType = instance.GetType();
 
-            if (Serializer.Config.Serialize64BitIntegerAsString && (instanceType == typeof(Int64) || instanceType == typeof(UInt64)))
+            if (Serializer.Config.Serialize64BitIntegerAsString &&
+                (instanceType == typeof(long) || instanceType == typeof(ulong)))
             {
-                serialized = new fsData((string)Convert.ChangeType(instance, typeof(string)));
+                serialized = new fsData((string) Convert.ChangeType(instance, typeof(string)));
                 return fsResult.Success;
             }
 
             if (UseBool(instanceType))
             {
-                serialized = new fsData((bool)instance);
+                serialized = new fsData((bool) instance);
                 return fsResult.Success;
             }
 
             if (UseInt64(instanceType))
             {
-                serialized = new fsData((Int64)Convert.ChangeType(instance, typeof(Int64)));
+                serialized = new fsData((long) Convert.ChangeType(instance, typeof(long)));
                 return fsResult.Success;
             }
 
@@ -76,23 +77,23 @@ namespace FullSerializer.Internal
                 // Casting to decimal as an intermediate step removes the jitter. Not sure why.
                 if (instance.GetType() == typeof(float) &&
                     // Decimal can't store float.MinValue/float.MaxValue/float.PositiveInfinity/float.NegativeInfinity/float.NaN - an exception gets thrown in that scenario.
-                    (float)instance != float.MinValue &&
-                    (float)instance != float.MaxValue &&
-                    !float.IsInfinity((float)instance) &&
-                    !float.IsNaN((float)instance)
-                    )
+                    (float) instance != float.MinValue &&
+                    (float) instance != float.MaxValue &&
+                    !float.IsInfinity((float) instance) &&
+                    !float.IsNaN((float) instance)
+                )
                 {
-                    serialized = new fsData((double)(decimal)(float)instance);
+                    serialized = new fsData((double) (decimal) (float) instance);
                     return fsResult.Success;
                 }
 
-                serialized = new fsData((double)Convert.ChangeType(instance, typeof(double)));
+                serialized = new fsData((double) Convert.ChangeType(instance, typeof(double)));
                 return fsResult.Success;
             }
 
             if (UseString(instanceType))
             {
-                serialized = new fsData((string)Convert.ChangeType(instance, typeof(string)));
+                serialized = new fsData((string) Convert.ChangeType(instance, typeof(string)));
                 return fsResult.Success;
             }
 
@@ -102,7 +103,7 @@ namespace FullSerializer.Internal
 
         public override fsResult TryDeserialize(fsData storage, ref object instance, Type storageType)
         {
-            var result = fsResult.Success;
+            fsResult result = fsResult.Success;
 
             if (UseBool(storageType))
             {
@@ -124,13 +125,14 @@ namespace FullSerializer.Internal
                     instance = Convert.ChangeType(storage.AsInt64, storageType);
                 }
                 else if (Serializer.Config.Serialize64BitIntegerAsString && storage.IsString &&
-                    (storageType == typeof(Int64) || storageType == typeof(UInt64)))
+                         (storageType == typeof(long) || storageType == typeof(ulong)))
                 {
                     instance = Convert.ChangeType(storage.AsString, storageType);
                 }
                 else
                 {
-                    return fsResult.Fail(GetType().Name + " expected number but got " + storage.Type + " in " + storage);
+                    return fsResult.Fail(GetType().Name + " expected number but got " + storage.Type + " in " +
+                                         storage);
                 }
                 return fsResult.Success;
             }
@@ -148,4 +150,3 @@ namespace FullSerializer.Internal
         }
     }
 }
-

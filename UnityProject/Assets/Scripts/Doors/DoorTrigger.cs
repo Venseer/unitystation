@@ -1,37 +1,38 @@
-﻿using InputControl;
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections;
+using PlayGroup;
+using PlayGroups.Input;
 using UI;
+using UnityEngine;
 
 namespace Doors
 {
-
     /// <summary>
-    /// Handles Interact messages from InputController.cs 
-    /// It also checks for access restrictions on the players ID card
+    ///     Handles Interact messages from InputController.cs
+    ///     It also checks for access restrictions on the players ID card
     /// </summary>
     public class DoorTrigger : InputTrigger
     {
-
-        private DoorController doorController;
         public bool allowInput = true;
+        private DoorController doorController;
+
         public void Start()
         {
             doorController = GetComponent<DoorController>();
         }
 
-        public override void Interact(GameObject originator, string hand)
+        public override void Interact(GameObject originator, Vector3 position, string hand)
         {
             if (doorController != null && allowInput)
             {
-                if ((int)doorController.restriction > 0)
+                if ((int) doorController.restriction > 0)
                 {
-                    if (UIManager.InventorySlots.IDSlot.IsFull && UIManager.InventorySlots.IDSlot.Item.GetComponent<IDCard>() != null)
+                    if (UIManager.InventorySlots.IDSlot.IsFull &&
+                        UIManager.InventorySlots.IDSlot.Item.GetComponent<IDCard>() != null)
                     {
                         CheckDoorAccess(UIManager.InventorySlots.IDSlot.Item.GetComponent<IDCard>(), doorController);
                     }
-                    else if (UIManager.Hands.CurrentSlot.IsFull && UIManager.Hands.CurrentSlot.Item.GetComponent<IDCard>() != null)
+                    else if (UIManager.Hands.CurrentSlot.IsFull &&
+                             UIManager.Hands.CurrentSlot.Item.GetComponent<IDCard>() != null)
                     {
                         CheckDoorAccess(UIManager.Hands.CurrentSlot.Item.GetComponent<IDCard>(), doorController);
                     }
@@ -39,7 +40,8 @@ namespace Doors
                     {
                         allowInput = false;
                         StartCoroutine(DoorInputCoolDown());
-                        PlayGroup.PlayerManager.LocalPlayerScript.playerNetworkActions.CmdRestrictDoorDenied(gameObject);
+                        PlayerManager.LocalPlayerScript.playerNetworkActions
+                            .CmdRestrictDoorDenied(gameObject);
                     }
                 }
                 else
@@ -48,48 +50,61 @@ namespace Doors
                     if (CustomNetworkManager.Instance._isServer)
                     {
                         if (!doorController.IsOpened)
+                        {
                             doorController.CmdTryOpen(gameObject);
+                        }
                         else
+                        {
                             doorController.CmdTryClose();
+                        }
                     }
                     else
                     {
                         //for mouse click opening when not server
                         if (!doorController.IsOpened)
-                            PlayGroup.PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryOpenDoor(gameObject);
+                        {
+                            PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryOpenDoor(gameObject);
+                        }
                         else
-                            PlayGroup.PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryCloseDoor(gameObject);
-
+                        {
+                            PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryCloseDoor(gameObject);
+                        }
                     }
                     StartCoroutine(DoorInputCoolDown());
                 }
             }
         }
 
-        void CheckDoorAccess(IDCard cardID, DoorController doorController)
+        private void CheckDoorAccess(IDCard cardID, DoorController doorController)
         {
             Debug.Log("been here!");
-            if (cardID.accessSyncList.Contains((int)doorController.restriction))
-            {// has access
+            if (cardID.accessSyncList.Contains((int) doorController.restriction))
+            {
+// has access
                 allowInput = false;
                 if (!doorController.IsOpened)
-                    PlayGroup.PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryOpenDoor(gameObject);
+                {
+                    PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryOpenDoor(gameObject);
+                }
                 else
-                    PlayGroup.PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryCloseDoor(gameObject);
+                {
+                    PlayerManager.LocalPlayerScript.playerNetworkActions.CmdTryCloseDoor(gameObject);
+                }
 
-                Debug.Log(doorController.restriction.ToString() + " access granted");
+                Debug.Log(doorController.restriction + " access granted");
                 StartCoroutine(DoorInputCoolDown());
             }
             else
-            {// does not have access
-                Debug.Log(doorController.restriction.ToString() + " no access");
+            {
+// does not have access
+                Debug.Log(doorController.restriction + " no access");
                 allowInput = false;
                 StartCoroutine(DoorInputCoolDown());
-                PlayGroup.PlayerManager.LocalPlayerScript.playerNetworkActions.CmdRestrictDoorDenied(gameObject);
+                PlayerManager.LocalPlayerScript.playerNetworkActions.CmdRestrictDoorDenied(gameObject);
             }
         }
 
-        IEnumerator DoorInputCoolDown()
+        private IEnumerator DoorInputCoolDown()
         {
             yield return new WaitForSeconds(0.3f);
             allowInput = true;

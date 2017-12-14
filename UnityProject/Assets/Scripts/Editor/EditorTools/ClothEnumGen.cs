@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
+
 #endif
 
 
@@ -16,14 +16,14 @@ public class ClothEnumGen : MonoBehaviour
 
 
     [MenuItem("Tools/Generate Cloth Enum")]
-    static void GenerateClothEnum()
+    private static void GenerateClothEnum()
     {
         Dictionary<string, string> hierName = prepareObjects();
         // the path we want to write to
         string path = string.Concat(Application.dataPath, Path.DirectorySeparatorChar,
-                "scripts", Path.DirectorySeparatorChar,
-                "Items", Path.DirectorySeparatorChar,
-                "ClothEnum.cs");
+            "scripts", Path.DirectorySeparatorChar,
+            "Items", Path.DirectorySeparatorChar,
+            "ClothEnum.cs");
         if (File.Exists(path))
         {
             File.Delete(path);
@@ -72,13 +72,13 @@ public class ClothEnumGen : MonoBehaviour
         AssetDatabase.Refresh();
     }
 
-    static Dictionary<string, string> prepareObjects()
+    private static Dictionary<string, string> prepareObjects()
     {
-        var tmpDic = new Dictionary<string, string>();
-        var dm = Resources.Load("DmObjectData") as DmObjectData;
-        foreach (var dic in dm.ObjectList)
+        Dictionary<string, string> tmpDic = new Dictionary<string, string>();
+        DmObjectData dm = Resources.Load("DmObjectData") as DmObjectData;
+        foreach (Dictionary<string, string> dic in dm.ObjectList)
         {
-            var hier = ItemAttributes.tryGetAttr(dic, "hierarchy");
+            string hier = ItemAttributes.tryGetAttr(dic, "hierarchy");
             if (!hier.Equals("") && hier.StartsWith("/obj/item/clothing/")) // these might require fine-tunung
             {
                 //                                var name = ItemAttributes.tryGetAttr(dic, "name").Trim()
@@ -87,19 +87,19 @@ public class ClothEnumGen : MonoBehaviour
                 //                                        .Replace("`", "").Replace(".","")
                 //                                        .Replace("(", "").Replace("!","")
                 //                                        .ToLower();
-                var hierz = hier.Split('/');
-                var name = Regex.Replace(
-                        ItemAttributes.tryGetAttr(dic, "name")
-                                .Trim().Replace('-', '_').Replace(' ', '_')
-                        , @"[^a-zA-Z0-9_]", "")
-                           + "__" + hierz[hierz.GetUpperBound(0) - 2]
-                           + "_" + hierz[hierz.GetUpperBound(0) - 1]
-                           + "_" + hierz[hierz.GetUpperBound(0)]
-                        ;
+                string[] hierz = hier.Split('/');
+                string name = Regex.Replace(
+                                  ItemAttributes.tryGetAttr(dic, "name")
+                                      .Trim().Replace('-', '_').Replace(' ', '_')
+                                  , @"[^a-zA-Z0-9_]", "")
+                              + "__" + hierz[hierz.GetUpperBound(0) - 2]
+                              + "_" + hierz[hierz.GetUpperBound(0) - 1]
+                              + "_" + hierz[hierz.GetUpperBound(0)]
+                    ;
 
                 tmpDic.Add(
-                        hier,
-                        name
+                    hier,
+                    name
                 );
             }
         }

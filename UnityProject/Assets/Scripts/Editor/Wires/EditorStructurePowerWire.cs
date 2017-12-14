@@ -1,24 +1,24 @@
-﻿using UnityEditor;
+﻿using Sprites;
+using UnityEditor;
 using UnityEngine;
-using Sprites;
 
 namespace Wiring
 {
     /// <summary>
-    /// This StructurePowerWire editor script helps set the correct
-    /// wires when building maps
+    ///     This StructurePowerWire editor script helps set the correct
+    ///     wires when building maps
     /// </summary>
     [CustomEditor(typeof(StructurePowerWire))]
     public class EditorStructurePowerWire : Editor
     {
-        private int startCache;
         private int endCache;
-        private bool showError = false;
-        private float msgTime = 0f;
+        private float msgTime;
+        private bool showError;
+        private int startCache;
+
         public override void OnInspectorGUI()
         {
-
-            StructurePowerWire sTarget = (StructurePowerWire)target;
+            StructurePowerWire sTarget = (StructurePowerWire) target;
             startCache = sTarget.DirectionStart;
             endCache = sTarget.DirectionEnd;
 
@@ -26,7 +26,8 @@ namespace Wiring
             EditorGUILayout.HelpBox("The starting dir of this wire in a turf, " +
                                     "using 4 bits to indicate N S E W - 1 2 4 8\r\n" +
                                     "Corners can also be used i.e.: 5 = NE (1 + 4) = 0101\r\n" +
-                                    "This is the edge of the location where the wire enters the turf", MessageType.Info);
+                                    "This is the edge of the location where the wire enters the turf",
+                MessageType.Info);
             sTarget.DirectionStart = EditorGUILayout.IntField("DirectionStart: ", sTarget.DirectionStart);
 
             EditorGUILayout.HelpBox("The ending dir of this wire in a turf, " +
@@ -37,7 +38,7 @@ namespace Wiring
 
             sTarget.DirectionEnd = EditorGUILayout.IntField("DirectionEnd: ", sTarget.DirectionEnd);
 
-            sTarget.Color = (WiringColor)EditorGUILayout.EnumPopup("Wiring Color: ", sTarget.Color);
+            sTarget.Color = (WiringColor) EditorGUILayout.EnumPopup("Wiring Color: ", sTarget.Color);
 
             if (EditorGUI.EndChangeCheck())
             {
@@ -66,7 +67,7 @@ namespace Wiring
                 EditorGUILayout.HelpBox("Incorrect start and end combination", MessageType.Error);
             }
             SerializedProperty TRay = serializedObject.FindProperty("TRay");
-            EditorGUILayout.PropertyField((TRay), true);
+            EditorGUILayout.PropertyField(TRay, true);
 
             EditorGUILayout.HelpBox("TODO: Create a specific component to handle wiring changes\r\n" +
                                     "via the map editor. Do this by inheriting the component from\r\n" +

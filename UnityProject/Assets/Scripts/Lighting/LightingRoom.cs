@@ -1,7 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
-
 
 namespace Lighting
 {
@@ -9,11 +7,12 @@ namespace Lighting
     {
         public LightingTileManager tileManager { get; set; }
         public LightingSourceManager sourceManager { get; set; }
+
         /// <summary>
-        /// x = left
-        /// y = top
-        /// z = right
-        /// w = down
+        ///     x = left
+        ///     y = top
+        ///     z = right
+        ///     w = down
         /// </summary>
         /// <value>The bounds of the LightTile Group in the room.</value>
         public Vector4 bounds
@@ -24,15 +23,11 @@ namespace Lighting
                 {
                     return tileManager.bounds;
                 }
-                else
-                {
-                    return Vector4.zero;
-                }
-
+                return Vector4.zero;
             }
         }
 
-        void Awake()
+        private void Awake()
         {
             foreach (Transform child in transform)
             {
@@ -45,12 +40,12 @@ namespace Lighting
             sourceManager = GetComponentInChildren<LightingSourceManager>();
         }
 
-        void Start()
+        private void Start()
         {
             Invoke("PrintBounds", 1f);
         }
 
-        void PrintBounds()
+        private void PrintBounds()
         {
             Debug.Log("LIGHTING: Bounds calc for " + gameObject.name + ": " + bounds);
         }
@@ -60,7 +55,6 @@ namespace Lighting
             foreach (KeyValuePair<Vector2, LightSource> light in sourceManager.lights)
             {
                 light.Value.Trigger(false);
-
             }
         }
 

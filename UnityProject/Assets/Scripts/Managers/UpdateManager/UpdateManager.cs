@@ -3,13 +3,17 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Handles the update methods for in game objects
-/// Handling the updates from a single point decreases cpu time
-/// and increases performance
+///     Handles the update methods for in game objects
+///     Handling the updates from a single point decreases cpu time
+///     and increases performance
 /// </summary>
 public class UpdateManager : MonoBehaviour
 {
     private static UpdateManager updateManager;
+
+    //List of all the objects to override UpdateMe method in Update
+    public List<ManagedNetworkBehaviour> regularUpdate = new List<ManagedNetworkBehaviour>();
+
     public static UpdateManager Instance
     {
         get
@@ -21,9 +25,6 @@ public class UpdateManager : MonoBehaviour
             return updateManager;
         }
     }
-
-    //List of all the objects to override UpdateMe method in Update
-    public List<ManagedNetworkBehaviour> regularUpdate = new List<ManagedNetworkBehaviour>();
 
     private void OnEnable()
     {
@@ -55,17 +56,4 @@ public class UpdateManager : MonoBehaviour
             regularUpdate[i].LateUpdateMe();
         }
     }
-
-
 }
-
-
-
-
-
-
-
-
-
-
-

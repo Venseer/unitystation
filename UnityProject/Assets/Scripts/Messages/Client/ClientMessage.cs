@@ -1,8 +1,5 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using PlayGroup;
 using UnityEngine.Networking;
-using PlayGroup;
 
 public abstract class ClientMessage<T> : GameMessage<T>
 {
@@ -31,10 +28,10 @@ public abstract class ClientMessage<T> : GameMessage<T>
         base.Deserialize(reader);
         SentBy = reader.ReadNetworkId();
     }
+
     public override void Serialize(NetworkWriter writer)
     {
         base.Serialize(writer);
         writer.Write(SentBy);
     }
-
 }

@@ -1,40 +1,42 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace PlayGroup
 {
     public class HitIcon : MonoBehaviour
     {
-
-        private Color transparent = new Color(1f, 1f, 1f, 0f);
-        private Color visible = new Color(1f, 1f, 1f, 1f);
+        private bool isFading;
         private Vector3 lerpFrom;
         private Vector3 lerpTo;
         private SpriteRenderer spriteRenderer;
+        private readonly Color transparent = new Color(1f, 1f, 1f, 0f);
+        private readonly Color visible = new Color(1f, 1f, 1f, 1f);
 
-        private bool isFading = false;
-
-        void Start()
+        private void Start()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
         }
 
-        //TODO accept a sprite, atm just prototyping with knife
-        public void ShowHitIcon(Vector2 dir)
+        public void ShowHitIcon(Vector2 dir, Sprite sprite)
         {
             if (isFading)
+            {
                 return;
+            }
+
             Vector3 newDir = new Vector3(dir.x, dir.y, 0f);
             lerpFrom = newDir * 0.75f;
             lerpTo = newDir;
             isFading = true;
+            spriteRenderer.sprite = sprite;
 
             if (gameObject.activeInHierarchy)
+            {
                 StartCoroutine(FadeIcon());
+            }
         }
 
-        IEnumerator FadeIcon()
+        private IEnumerator FadeIcon()
         {
             float timer = 0f;
             float time = 0.1f;

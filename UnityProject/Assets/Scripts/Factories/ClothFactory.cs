@@ -1,52 +1,76 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Networking;
-using UI;
 
 public class ClothFactory : NetworkBehaviour
 {
+    public static ClothFactory Instance;
 
-    private static ClothFactory clothFactory;
-    public static ClothFactory Instance
+    public static string ClothingHierIdentifier = "cloth";
+    public static string HeadsetHierIdentifier = "headset";
+
+    private GameObject uniCloth { get; set; }
+    private GameObject uniHeadSet { get; set; }
+
+    private void Awake()
     {
-        get
+        if (Instance == null)
         {
-            if (clothFactory == null)
-            {
-                clothFactory = FindObjectOfType<ClothFactory>();
-                Instance.Init();
-            }
-            return clothFactory;
+            Instance = this;
+        }
+        else
+        {
+            Destroy(this);
         }
     }
 
-    private GameObject uniCloth { get; set; }
-
-    void Init()
+    private void Start()
     {
         //Do init stuff
-        Instance.uniCloth = Resources.Load("UniCloth") as GameObject;
+        uniCloth = Resources.Load("UniCloth") as GameObject;
+        uniHeadSet = Resources.Load("UniHeadSet") as GameObject;
     }
 
-    public static void PreLoadCloth(int preLoads)
+    public void PreLoadCloth(int preLoads)
     {
         for (int i = 0; i < preLoads; i++)
         {
-            PoolManager.PoolNetworkPreLoad(Instance.uniCloth);
+            PoolManager.Instance.PoolNetworkPreLoad(Instance.uniCloth);
+            PoolManager.Instance.PoolNetworkPreLoad(Instance.uniHeadSet);
         }
     }
 
     //TODO is it going to be spawned on a player in equipment etc?
-    public static GameObject CreateCloth(string hierString, Vector3 spawnPos)
+    public GameObject CreateCloth(string hierString, Vector3 spawnPos)
     {
         if (!CustomNetworkManager.Instance._isServer)
+        {
             return null;
+        }
 
         //PoolManager handles networkspawn
-        GameObject clothObj = PoolManager.PoolNetworkInstantiate(Instance.uniCloth, spawnPos, Quaternion.identity);
+        GameObject uniItem = pickClothObject(hierString);
+        GameObject clothObj = PoolManager.Instance.PoolNetworkInstantiate(uniItem, spawnPos, Quaternion.identity);
         ItemAttributes i = clothObj.GetComponent<ItemAttributes>();
         i.hierarchy = hierString;
+        if (uniItem == uniHeadSet)
+        {
+            Headset headset = clothObj.GetComponent<Headset>();
+            headset.init();
+        }
         return clothObj;
+    }
+
+    private GameObject pickClothObject(string hierarchy)
+    {
+        if (hierarchy.Contains(ClothingHierIdentifier))
+        {
+            return uniCloth;
+        }
+        if (hierarchy.Contains(HeadsetHierIdentifier))
+        {
+            return uniHeadSet;
+        }
+        Debug.LogError("Clot factory could not pick uni item. Falling back to uniCloth");
+        return uniCloth;
     }
 }

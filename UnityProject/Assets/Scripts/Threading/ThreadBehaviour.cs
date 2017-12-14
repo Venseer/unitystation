@@ -1,5 +1,4 @@
-﻿using System;
-using System.Threading;
+﻿using System.Threading;
 using UnityEngine;
 
 public enum ThreadedBehaviourType
@@ -12,21 +11,16 @@ public enum ThreadedBehaviourType
 
 public class ThreadedBehaviour : MonoBehaviour
 {
-
-    [Header("Threaded Manager")]
-    public bool IsRunning;
+    [Header("Threaded Manager")] public bool IsRunning;
 
     public int Ticker;
     public int TickSpeed = 1;
     public Thread WorkingThread;
 
-    public float TickSpeedMs
-    {
-        get { return TickSpeed / 1000f; }
-    }
+    public float TickSpeedMs => TickSpeed / 1000f;
 
     /// <summary>
-    /// Runs when the manager is started causing the thread to commence
+    ///     Runs when the manager is started causing the thread to commence
     /// </summary>
     public virtual void StartManager()
     {
@@ -40,31 +34,33 @@ public class ThreadedBehaviour : MonoBehaviour
 
         WorkingThread = new Thread(ThreadedLoop);
         WorkingThread.Start();
-        var str = String.Format("<b>{0}</b> Started", GetType().Name);
+        string str = string.Format("<b>{0}</b> Started", GetType().Name);
         Debug.Log(str);
         //        ConsoleDebug.AddText("<color=#00FFFF>" + str + "</color>");
     }
 
     /// <summary>
-    /// Runs when the manager is stopped causing the thread to be aborted
+    ///     Runs when the manager is stopped causing the thread to be aborted
     /// </summary>
     public virtual void StopManager()
     {
         if (!this)
+        {
             return;
+        }
         if (WorkingThread != null)
         {
             WorkingThread.Abort();
             WorkingThread = null;
         }
-        var str = String.Format("<b>{0}</b> Stopped", GetType().Name);
+        string str = string.Format("<b>{0}</b> Stopped", GetType().Name);
         Debug.Log(str);
         //        ConsoleDebug.AddText("<color=#00FFFF>" + str + "</color>");
         IsRunning = false;
     }
 
     /// <summary>
-    /// Runs for each 'tick' of the thread
+    ///     Runs for each 'tick' of the thread
     /// </summary>
     public virtual void ThreadedWork()
     {
@@ -77,8 +73,10 @@ public class ThreadedBehaviour : MonoBehaviour
         {
             ThreadedWork();
             Thread.Sleep(TickSpeed);
-            if (Ticker < Int32.MaxValue)
+            if (Ticker < int.MaxValue)
+            {
                 Ticker++;
+            }
         }
         IsRunning = false;
     }

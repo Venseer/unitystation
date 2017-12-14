@@ -1,39 +1,41 @@
-﻿using UnityEngine;
-using System.Collections;
+﻿using System.Collections;
+using UnityEngine;
 
 namespace NPC
 {
     public class NPC_Clown : MonoBehaviour
     {
-
-        private SpriteRenderer spriteRenderer;
         public Sprite[] clownSprites;
+        private bool isMoving;
 
-        private bool isRight = false;
-        private bool isMoving = false;
+        private bool isRight;
+        private SpriteRenderer spriteRenderer;
 
-        void Start()
+        private void Start()
         {
             spriteRenderer = GetComponent<SpriteRenderer>();
             //Snap to grid
             //FIXME need to figure out the grid and how to round to it
-            Vector2 newPos = new Vector2(Mathf.Round(transform.position.x / 100f) * 100f, Mathf.Round(transform.position.y / 100f) * 100f);
+            Vector2 newPos = new Vector2(Mathf.Round(transform.position.x / 100f) * 100f,
+                Mathf.Round(transform.position.y / 100f) * 100f);
             transform.position = newPos;
             StartCoroutine(RandMove());
         }
 
-        void OnDisable()
+        private void OnDisable()
         {
             StopCoroutine(RandMove());
         }
 
-        void Update()
+        private void Update()
         {
             if (!isMoving)
+            {
                 StartCoroutine(RandMove());
+            }
         }
 
-        IEnumerator RandMove()
+        private IEnumerator RandMove()
         {
             isMoving = true;
             float ranTime = Random.Range(0.2f, 6f);
@@ -48,7 +50,6 @@ namespace NPC
                 spriteRenderer.sprite = clownSprites[2];
                 Vector2 movePos = new Vector2(transform.position.x, transform.position.y + 32f);
                 transform.position = movePos;
-
             }
             else if (ranDir == 1)
             {
@@ -62,7 +63,6 @@ namespace NPC
                     isRight = true;
                     Flip();
                 }
-
             }
             else if (ranDir == 2)
             {
@@ -70,7 +70,6 @@ namespace NPC
                 spriteRenderer.sprite = clownSprites[0];
                 Vector2 movePos = new Vector2(transform.position.x, transform.position.y - 32f);
                 transform.position = movePos;
-
             }
             else if (ranDir == 3)
             {
@@ -92,7 +91,7 @@ namespace NPC
             isMoving = false;
         }
 
-        void Flip()
+        private void Flip()
         {
             Vector2 newScale = transform.localScale;
             newScale.x = -newScale.x;

@@ -1,11 +1,8 @@
-﻿using PlayGroup;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.UI;
-
 
 namespace UI
 {
-
     //    public enum DamageZoneSelector {
     //        torso,
     //        head,
@@ -36,9 +33,12 @@ namespace UI
 
         public void SelectAction(int curSelect, bool click)
         {
-            if (click) { SoundManager.Play("Click01"); }
+            if (click)
+            {
+                SoundManager.Play("Click01");
+            }
             selImg.sprite = selectorSprites[curSelect];
-            UIManager.DamageZone = (BodyPartType)curSelect;
+            UIManager.DamageZone = (BodyPartType) curSelect;
         }
     }
 }

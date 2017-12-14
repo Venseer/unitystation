@@ -1,33 +1,30 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
+using PlayGroup;
+using PlayGroups.Input;
+using UI;
 using UnityEngine;
 using UnityEngine.Networking;
-using PlayGroup;
-using UI;
-using Items;
-using InputControl;
 
 public class FireCabinetTrigger : InputTrigger
 {
-    public Sprite spriteClosed;
-    public Sprite spriteOpenedOccupied;
-    public Sprite spriteOpenedEmpty;
+    private bool hasJustPlaced;
+
+    [SyncVar(hook = "SyncCabinet")] public bool IsClosed;
+
+    [SyncVar(hook = "SyncItemSprite")] public bool isFull;
 
     public GameObject itemPrefab;
-
-    [SyncVar(hook = "SyncCabinet")]
-    public bool IsClosed;
-
-    [SyncVar(hook = "SyncItemSprite")]
-    public bool isFull;
+    public Sprite spriteClosed;
+    public Sprite spriteOpenedEmpty;
+    public Sprite spriteOpenedOccupied;
     private SpriteRenderer spriteRenderer;
-    private bool sync = false;
-    private bool hasJustPlaced = false;
-    //For storing extinguishers server side
-    [HideInInspector]
-    public ObjectBehaviour storedObject;
 
-    void Start()
+    //For storing extinguishers server side
+    [HideInInspector] public ObjectBehaviour storedObject;
+
+    private bool sync;
+
+    private void Start()
     {
         spriteRenderer = transform.Find("Sprite").GetComponent<SpriteRenderer>();
     }
@@ -35,30 +32,33 @@ public class FireCabinetTrigger : InputTrigger
     public override void OnStartServer()
     {
         if (spriteRenderer == null)
+        {
             spriteRenderer = transform.Find("Sprite").GetComponent<SpriteRenderer>();
+        }
         IsClosed = true;
         isFull = true;
 
-        GameObject item = Instantiate(itemPrefab, Vector3.zero, Quaternion.identity) as GameObject;
+        GameObject item = Instantiate(itemPrefab, Vector3.zero, Quaternion.identity);
         NetworkServer.Spawn(item);
         storedObject = item.GetComponent<ObjectBehaviour>();
         storedObject.visibleState = false;
         base.OnStartServer();
     }
+
     public override void OnStartClient()
     {
         StartCoroutine(WaitForLoad());
         base.OnStartClient();
     }
 
-    IEnumerator WaitForLoad()
+    private IEnumerator WaitForLoad()
     {
         yield return new WaitForSeconds(3f);
         SyncCabinet(IsClosed);
         SyncItemSprite(isFull);
     }
 
-    public override void Interact(GameObject originator, string hand)
+    public override void Interact(GameObject originator, Vector3 position, string hand)
     {
         if (IsClosed)
         {
@@ -118,11 +118,13 @@ public class FireCabinetTrigger : InputTrigger
         else
         {
             if (!IsClosed)
+            {
                 spriteRenderer.sprite = spriteOpenedOccupied;
+            }
         }
     }
 
-    void SyncCabinet(bool _isClosed)
+    private void SyncCabinet(bool _isClosed)
     {
         IsClosed = _isClosed;
         if (_isClosed)
@@ -135,7 +137,7 @@ public class FireCabinetTrigger : InputTrigger
         }
     }
 
-    void Open()
+    private void Open()
     {
         PlaySound();
         if (isFull)
@@ -148,13 +150,13 @@ public class FireCabinetTrigger : InputTrigger
         }
     }
 
-    void Close()
+    private void Close()
     {
         PlaySound();
         spriteRenderer.sprite = spriteClosed;
     }
 
-    void PlaySound()
+    private void PlaySound()
     {
         if (!sync)
         {

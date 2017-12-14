@@ -1,35 +1,30 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using Crafting;
 using UnityEngine;
 using UnityEngine.Networking;
-using UI;
-using Events;
-using Crafting;
 
 public class Microwave : NetworkBehaviour
 {
+    private AudioSource audioSource;
 
-    public Sprite onSprite;
+    private float cookingTime;
     public float cookTime = 10;
+    private string meal;
+    private Sprite offSprite;
+    public Sprite onSprite;
 
     private SpriteRenderer spriteRenderer;
-    private Sprite offSprite;
-    private AudioSource audioSource;
 
     public bool Cooking { get; private set; }
 
-    private float cookingTime = 0;
-    private string meal;
 
-
-    void Start()
+    private void Start()
     {
         spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         audioSource = GetComponent<AudioSource>();
         offSprite = spriteRenderer.sprite;
     }
 
-    void Update()
+    private void Update()
     {
         if (Cooking)
         {
@@ -63,8 +58,7 @@ public class Microwave : NetworkBehaviour
         if (isServer)
         {
             GameObject mealPrefab = CraftingManager.Meals.FindOutputMeal(meal);
-            GameObject newMeal = Instantiate(mealPrefab, transform.position, Quaternion.identity) as GameObject;
-            NetworkServer.Spawn(newMeal);
+            ItemFactory.Instance.SpawnMeal(mealPrefab, transform.position);
         }
         meal = null;
     }

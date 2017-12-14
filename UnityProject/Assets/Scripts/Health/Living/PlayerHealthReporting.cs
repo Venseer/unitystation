@@ -1,29 +1,27 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
 namespace PlayGroup
 {
     /// <summary>
-    /// Player health reporting.
-    /// 
-    /// This is the Server -> Client reporting for player health
-    /// The server also calculates the overall health values in this component
-    /// (To determine maxHealth for huds, ui overlays etc)
+    ///     Player health reporting.
+    ///     This is the Server -> Client reporting for player health
+    ///     The server also calculates the overall health values in this component
+    ///     (To determine maxHealth for huds, ui overlays etc)
     /// </summary>
     public class PlayerHealthReporting : ManagedNetworkBehaviour
     {
+        private int bloodLevelCache;
+        private float BloodPercentage = 100f;
+
+        //server only caches
+        private int healthServerCache;
         //TODO if client disconnects and reconnects then the clients UI needs to 
         //poll this component and request updated values from the server to set
         //the current state of the UI overlays and hud
 
         public PlayerHealth playerHealth;
-
-        //server only caches
-        private int healthServerCache;
-        private int bloodLevelCache;
-        private float BloodPercentage = 100f;
 
         protected override void Awake()
         {
@@ -42,7 +40,7 @@ namespace PlayGroup
             base.OnStartServer();
         }
 
-        IEnumerator WaitForLoad()
+        private IEnumerator WaitForLoad()
         {
             yield return new WaitForSeconds(1f); //1000ms wait for lag
 
@@ -52,7 +50,9 @@ namespace PlayGroup
         private void OnDestroy()
         {
             if (isServer)
+            {
                 UpdateManager.Instance.regularUpdate.Remove(this);
+            }
         }
 
         //This only runs on the server, server will do the calculations and send
@@ -62,6 +62,7 @@ namespace PlayGroup
             ServerMonitorHealth();
             base.UpdateMe();
         }
+
         private void ServerMonitorHealth()
         {
             //Add other damage methods here like burning, 
@@ -78,7 +79,7 @@ namespace PlayGroup
                 }
                 else
                 {
-                    BloodPercentage = ((float)playerHealth.BloodLevel / 560f) * 100f;
+                    BloodPercentage = playerHealth.BloodLevel / 560f * 100f;
                 }
             }
 
@@ -86,7 +87,7 @@ namespace PlayGroup
             //manually and update the clients UI
             if (BloodPercentage < playerHealth.Health)
             {
-                healthServerCache = (int)BloodPercentage;
+                healthServerCache = (int) BloodPercentage;
                 playerHealth.ServerOnlySetHealth(healthServerCache);
                 UpdateClientUI(healthServerCache);
             }

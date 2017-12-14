@@ -1,72 +1,71 @@
 ﻿using System.Collections;
-using InputControl;
+using PlayGroup;
 using UnityEngine;
 using UnityEngine.Networking;
-using System;
-using PlayGroup;
 
 /// <summary>
-/// Attempts to send a chat message to the server
+///     Attempts to send a chat message to the server
 /// </summary>
 public class PostToChatMessage : ClientMessage<PostToChatMessage>
 {
-	public ChatChannel Channels;
-	public string ChatMessageText;
+    public ChatChannel Channels;
+    public string ChatMessageText;
 
-	public override IEnumerator Process()
-	{
-		yield return WaitFor(SentBy);
+    public override IEnumerator Process()
+    {
+        yield return WaitFor(SentBy);
 
-		GameObject player = NetworkObjects[0];
-		if(Validate(player)) {
-			ChatModifier modifiers = player.GetComponent<PlayerScript>().GetCurrentChatModifiers();
-			ChatEvent chatEvent = new ChatEvent(ChatMessageText, player.name, Channels, modifiers);
+        GameObject player = NetworkObject;
+        if (ValidRequest(player))
+        {
+            ChatModifier modifiers = player.GetComponent<PlayerScript>().GetCurrentChatModifiers();
+            ChatEvent chatEvent = new ChatEvent(ChatMessageText, player.name, Channels, modifiers);
+            ChatRelay.Instance.AddToChatLogServer(chatEvent);
+        }
+    }
 
-			ChatRelay.Instance.AddToChatLog(chatEvent);
-		}
-	}
+    //We want ChatEvent to be created on the server, so we're only passing the individual variables
+    public static PostToChatMessage Send(string message, ChatChannel channels)
+    {
+        PostToChatMessage msg = new PostToChatMessage
+        {
+            Channels = channels,
+            ChatMessageText = message
+        };
+        msg.Send();
 
-	public static PostToChatMessage Send(string message, ChatChannel channels)
-	{
-		var msg = new PostToChatMessage
-		{
-			Channels = channels,
-			ChatMessageText = message
-		};
-		msg.Send();
+        return msg;
+    }
 
-		return msg;
-	}
+    public bool ValidRequest(GameObject player)
+    {
+        PlayerScript playerScript = player.GetComponent<PlayerScript>();
+        //Need to add system channel here so player can transmit system level events but not select it in the UI
+        ChatChannel availableChannels = playerScript.GetAvailableChannels() | ChatChannel.System;
+        if ((playerScript.GetAvailableChannels() & Channels) == Channels)
+        {
+            return true;
+        }
+        return false;
+    }
 
-	public bool Validate(GameObject player)
-	{
-		PlayerScript playerScript = player.GetComponent<PlayerScript>();
+    public override string ToString()
+    {
+        return string.Format("[PostToChatMessage SentBy={0} ChatMessageText={1} Channels={2}]",
+            SentBy, ChatMessageText, Channels);
+    }
 
-		if((playerScript.GetAvailableChannels() & Channels) == Channels){
-			return true;
-		}
+    public override void Deserialize(NetworkReader reader)
+    {
+        base.Deserialize(reader);
+        Channels = (ChatChannel) reader.ReadUInt32();
+        ChatMessageText = reader.ReadString();
+    }
 
-		return false;
-	}
-
-	public override string ToString()
-	{
-		return string.Format("[PostToChatMessage SentBy={0} ChatMessageText={1} Channels={2}]",
-			SentBy, ChatMessageText, Channels);
-	}
-
-	public override void Deserialize(NetworkReader reader)
-	{
-		base.Deserialize(reader);
-		Channels = (ChatChannel)reader.ReadInt16();
-		ChatMessageText = reader.ReadString();
-
-	}
-
-	public override void Serialize(NetworkWriter writer)
-	{
-		base.Serialize(writer);
-		writer.Write((Int16)Channels);
-		writer.Write(ChatMessageText);
-	}
+    public override void Serialize(NetworkWriter writer)
+    {
+        base.Serialize(writer);
+        writer.Write((int) Channels);
+        writer.Write(ChatMessageText);
+    }
 }

@@ -1,22 +1,20 @@
 ﻿using System.Collections;
-using UnityEngine.Networking;
-using UnityEngine;
 using Sprites;
+using UnityEngine;
+using UnityEngine.Networking;
 
 public class SimpleAnimal : HealthBehaviour
 {
-    [Header("For harvestable animals")]
-    public GameObject[] butcherResults;
-
-    public SpriteRenderer spriteRend;
     public Sprite aliveSprite;
+    [Header("For harvestable animals")] public GameObject[] butcherResults;
     public Sprite deadSprite;
 
     //Syncvar hook so that new players can sync state on start
-    [SyncVar(hook = "SetAliveState")]
-    public bool deadState;
+    [SyncVar(hook = "SetAliveState")] public bool deadState;
 
-    void Start()
+    public SpriteRenderer spriteRend;
+
+    private void Start()
     {
         //Set it automatically because we are using the SimpleAnimalBehaviour
         isNPC = true;
@@ -28,19 +26,21 @@ public class SimpleAnimal : HealthBehaviour
         StartCoroutine(WaitForLoad());
     }
 
-    IEnumerator WaitForLoad()
+    private IEnumerator WaitForLoad()
     {
         yield return new WaitForSeconds(2f);
         SetAliveState(deadState);
     }
 
-    public override int ReceiveAndCalculateDamage(string damagedBy, int damage, DamageType damageType, BodyPartType bodyPartAim)
+    public override int ReceiveAndCalculateDamage(string damagedBy, int damage, DamageType damageType,
+        BodyPartType bodyPartAim)
     {
         base.ReceiveAndCalculateDamage(damagedBy, damage, damageType, bodyPartAim);
         if (isServer)
+        {
             EffectsFactory.Instance.BloodSplat(transform.position, BloodSplatSize.medium);
+        }
         return damage;
-
     }
 
     [Server]
@@ -48,7 +48,7 @@ public class SimpleAnimal : HealthBehaviour
     {
         foreach (GameObject harvestPrefab in butcherResults)
         {
-            GameObject harvest = Instantiate(harvestPrefab, transform.position, Quaternion.identity) as GameObject;
+            GameObject harvest = Instantiate(harvestPrefab, transform.position, Quaternion.identity);
             NetworkServer.Spawn(harvest);
         }
         EffectsFactory.Instance.BloodSplat(transform.position, BloodSplatSize.medium);
@@ -62,7 +62,7 @@ public class SimpleAnimal : HealthBehaviour
         deadState = true;
     }
 
-    void SetAliveState(bool state)
+    private void SetAliveState(bool state)
     {
         deadState = state;
         if (state)

@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Tilemaps.Scripts.Behaviours.Objects;
 using UnityEngine;
 using UnityEngine.Networking;
-using Items;
-using UI;
 
 namespace Equipment
 {
@@ -12,8 +9,8 @@ namespace Equipment
     //sent to the client UI and playerobj
     public class ObjectPool : MonoBehaviour
     {
-
-        public Dictionary<NetworkIdentity, ItemAttributes> currentObjects = new Dictionary<NetworkIdentity, ItemAttributes>();
+        public Dictionary<NetworkIdentity, ItemAttributes> currentObjects =
+            new Dictionary<NetworkIdentity, ItemAttributes>();
 
         public void AddGameObject(GameObject obj)
         {
@@ -51,16 +48,17 @@ namespace Equipment
             {
                 if (!dropPos.Equals(Vector3.zero))
                 {
-                    var o = currentObjects[id].gameObject;
+                    GameObject o = currentObjects[id].gameObject;
                     DropNow(o, dropPos);
                 }
                 currentObjects.Remove(id);
+                gObj.GetComponent<RegisterTile>().UpdatePosition();
             }
         }
 
         private static void DropNow(GameObject gObj, Vector3 dropPos)
         {
-            gObj.transform.parent = null;
+            gObj.transform.parent = GameObject.FindGameObjectWithTag("SpawnParent").transform;
             gObj.transform.position = dropPos;
         }
     }

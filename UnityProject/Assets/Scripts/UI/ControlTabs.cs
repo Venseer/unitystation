@@ -1,37 +1,28 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using PlayGroup;
+using Tilemaps.Scripts.Tiles;
 using UnityEngine;
 using UnityEngine.UI;
-using PlayGroup;
 
 namespace UI
 {
     public class ControlTabs : MonoBehaviour
     {
-        public Button statsTab;
+        private static ControlTabs controlTabs;
         public Button ItemListTab;
-        public Button optionsTab;
-        public Button moreTab;
-
-        public GameObject panelStats;
-        public GameObject PanelItemList;
-        public GameObject panelOptions;
-        public GameObject panelMore;
-
-        public Color unselectColor;
-        public Color selectedColor;
 
         private bool itemListTabExists;
+        public Button moreTab;
+        public Button optionsTab;
+        public GameObject PanelItemList;
+        public GameObject panelMore;
+        public GameObject panelOptions;
 
-        private enum WindowSelect
-        {
-            stats,
-            itemList,
-            options,
-            more
-        }
+        public GameObject panelStats;
+        public Color selectedColor;
+        public Button statsTab;
 
-        private static ControlTabs controlTabs;
+        public Color unselectColor;
 
         public static ControlTabs Instance
         {
@@ -46,7 +37,7 @@ namespace UI
             }
         }
 
-        void Start()
+        private void Start()
         {
             SelectWindow(WindowSelect.stats);
             itemListTabExists = false;
@@ -114,7 +105,7 @@ namespace UI
         }
 
         /// <summary>
-        /// Check if the Item List Tab needs to be updated or closed
+        ///     Check if the Item List Tab needs to be updated or closed
         /// </summary>
         public static void CheckItemListTab()
         {
@@ -124,18 +115,19 @@ namespace UI
             }
 
             UITileList.UpdateItemPanelList();
-            //Slightly lower reach because distance from player to tile is shorter than from player to object. (Ends up allowing 2 floor tile reach otherwise)
-            if (!PlayerManager.LocalPlayerScript.IsInReach(UITileList.GetListedItemsLocation(), 1.5f))
+            if (!PlayerManager.LocalPlayerScript.IsInReach(UITileList.GetListedItemsLocation()))
             {
                 HideItemListTab();
             }
         }
 
         /// <summary>
-        /// Displays the Objects tab
+        ///     Displays the Objects tab
         /// </summary>
-        /// <param name="tiles">List of GameObjects to include in the Item List Tab</param>
-        public static void ShowItemListTab(List<GameObject> tiles)
+        /// <param name="objects">List of GameObjects to include in the Item List Tab</param>
+        /// <param name="tile">Tile to include in the Item List Tab</param>
+        /// <param name="position">Position of objects</param>
+        public static void ShowItemListTab(List<GameObject> objects, LayerTile tile, Vector3 position)
         {
             //If window exists, player is perhaps alt-clicking at another tile. Only slide tabs if Item List Tab doesn't already exist.
             if (Instance.itemListTabExists)
@@ -147,24 +139,20 @@ namespace UI
                 SlideOptionsAndMoreTabs(Vector3.right);
             }
 
-            foreach (GameObject tile in tiles)
+            UITileList.AddTileToItemPanel(tile, position);
+            foreach (GameObject itemObject in objects)
             {
-                UITileList.AddObjectToItemPanel(tile);
-
-                //TODO re-implement for new tile system
-                if (tile.GetComponent<FloorTile>())
-                {
-                    Instance.ItemListTab.GetComponentInChildren<Text>().text = tile.name;
-                }
+                UITileList.AddObjectToItemPanel(itemObject);
             }
 
+            Instance.ItemListTab.GetComponentInChildren<Text>().text = tile.name;
             Instance.ItemListTab.gameObject.SetActive(true);
             Instance.Button_Item_List();
             Instance.itemListTabExists = true;
         }
 
         /// <summary>
-        /// Hides the Item List Tab
+        ///     Hides the Item List Tab
         /// </summary>
         public static void HideItemListTab()
         {
@@ -191,6 +179,14 @@ namespace UI
 
             optionsRect.localPosition += direction * (width / 2f);
             moreRect.localPosition += direction * (width / 2f);
+        }
+
+        private enum WindowSelect
+        {
+            stats,
+            itemList,
+            options,
+            more
         }
     }
 }

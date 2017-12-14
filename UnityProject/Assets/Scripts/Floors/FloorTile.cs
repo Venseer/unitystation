@@ -1,13 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 [ExecuteInEditMode]
 public class FloorTile : MonoBehaviour
 {
-
-    public GameObject fireScorch;
     public GameObject ambientTile;
+    public GameObject fireScorch;
 
     public void AddFireScorch()
     {
@@ -18,7 +15,7 @@ public class FloorTile : MonoBehaviour
         }
     }
 
-    void Start()
+    private void Start()
     {
         CheckAmbientTile();
     }
@@ -27,7 +24,8 @@ public class FloorTile : MonoBehaviour
     {
         if (ambientTile == null)
         {
-            ambientTile = GameObject.Instantiate(Resources.Load("AmbientTile") as GameObject, transform.position, Quaternion.identity, transform);
+            ambientTile = Instantiate(Resources.Load("AmbientTile") as GameObject, transform.position,
+                Quaternion.identity, transform);
         }
     }
 
@@ -36,9 +34,7 @@ public class FloorTile : MonoBehaviour
         if (fireScorch != null)
         {
             fireScorch.transform.parent = null;
-            PoolManager.PoolClientDestroy(fireScorch);
+            PoolManager.Instance.PoolClientDestroy(fireScorch);
         }
     }
 }
-
-

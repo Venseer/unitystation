@@ -15,7 +15,6 @@ namespace FullSerializer.Internal
             if (type.Resolve().IsArray ||
                 typeof(ICollection).IsAssignableFrom(type))
             {
-
                 return false;
             }
 
@@ -25,7 +24,7 @@ namespace FullSerializer.Internal
         public override fsResult TrySerialize(object instance, out fsData serialized, Type storageType)
         {
             serialized = fsData.CreateDictionary();
-            var result = fsResult.Success;
+            fsResult result = fsResult.Success;
 
             fsMetaType metaType = fsMetaType.Get(Serializer.Config, instance.GetType());
             metaType.EmitAotData();
@@ -33,12 +32,15 @@ namespace FullSerializer.Internal
             for (int i = 0; i < metaType.Properties.Length; ++i)
             {
                 fsMetaProperty property = metaType.Properties[i];
-                if (property.CanRead == false) continue;
+                if (property.CanRead == false)
+                {
+                    continue;
+                }
 
                 fsData serializedData;
 
-                var itemResult = Serializer.TrySerialize(property.StorageType, property.OverrideConverterType,
-                                                         property.Read(instance), out serializedData);
+                fsResult itemResult = Serializer.TrySerialize(property.StorageType, property.OverrideConverterType,
+                    property.Read(instance), out serializedData);
                 result.AddMessages(itemResult);
                 if (itemResult.Failed)
                 {
@@ -53,7 +55,7 @@ namespace FullSerializer.Internal
 
         public override fsResult TryDeserialize(fsData data, ref object instance, Type storageType)
         {
-            var result = fsResult.Success;
+            fsResult result = fsResult.Success;
 
             // Verify that we actually have an Object
             if ((result += CheckType(data, fsDataType.Object)).Failed)
@@ -67,7 +69,10 @@ namespace FullSerializer.Internal
             for (int i = 0; i < metaType.Properties.Length; ++i)
             {
                 fsMetaProperty property = metaType.Properties[i];
-                if (property.CanWrite == false) continue;
+                if (property.CanWrite == false)
+                {
+                    continue;
+                }
 
                 fsData propertyData;
                 if (data.AsDictionary.TryGetValue(property.JsonName, out propertyData))
@@ -84,10 +89,13 @@ namespace FullSerializer.Internal
                         deserializedValue = property.Read(instance);
                     }
 
-                    var itemResult = Serializer.TryDeserialize(propertyData, property.StorageType,
-                                                               property.OverrideConverterType, ref deserializedValue);
+                    fsResult itemResult = Serializer.TryDeserialize(propertyData, property.StorageType,
+                        property.OverrideConverterType, ref deserializedValue);
                     result.AddMessages(itemResult);
-                    if (itemResult.Failed) continue;
+                    if (itemResult.Failed)
+                    {
+                        continue;
+                    }
 
                     property.Write(instance, deserializedValue);
                 }

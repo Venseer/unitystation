@@ -1,31 +1,21 @@
-﻿using System;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Tilemaps;
-using UnityEngine.Timeline;
-using UnityEditor;
-using UnityEditor.MemoryProfiler;
-using UnityEditorInternal;
+﻿using System.IO;
 using Tilemaps.Editor.Utils;
-using Tilemaps.Scripts.Utils;
 using Tilemaps.Scripts.Tiles;
-using Tilemaps.Scripts.Behaviours.Objects;
-
+using Tilemaps.Scripts.Utils;
+using UnityEditor;
+using UnityEngine;
 
 public class Prefab2Tile : EditorWindow
 {
     [MenuItem("Tools/Prefab2Tile")]
     public static void Apply()
     {
-        string[] watched = { "Objects" };
+        string[] watched = {"Objects"};
         foreach (string subject in watched)
         {
-            Prefab2Tile.CheckTiles(subject);
-            Prefab2Tile.GenerateTiles(subject);
-            Prefab2Tile.CleanSprites(subject);
+            CheckTiles(subject);
+            GenerateTiles(subject);
+            CleanSprites(subject);
         }
     }
 
@@ -39,11 +29,13 @@ public class Prefab2Tile : EditorWindow
         int counter = 0;
         int created = 0;
         string[] scan = Directory.GetFiles(basePath2, "*.prefab", SearchOption.AllDirectories);
-        foreach (String file in scan)
+        foreach (string file in scan)
         {
             counter++;
             int t = scan.Length;
-            EditorUtility.DisplayProgressBar(counter.ToString() + "/" + scan.Length + " Generating Tiles for " + subject, "Tile: " + counter, (float)counter / (float)scan.Length);
+            EditorUtility.DisplayProgressBar(
+                counter + "/" + scan.Length + " Generating Tiles for " + subject, "Tile: " + counter,
+                counter / (float) scan.Length);
             //			Debug.Log ("Longpath data: " + file);
 
             //Get the filename without extention and path
@@ -62,19 +54,18 @@ public class Prefab2Tile : EditorWindow
             //			Debug.Log ("barePath data: " + barePath);
 
             //Check if tile already exists
-            if (System.IO.File.Exists(Application.dataPath + "/Tilemaps/Tiles/" + subject + "/" + barePath + "/" + name + ".asset"))
+            if (File.Exists(Application.dataPath + "/Tilemaps/Tiles/" + subject + "/" + barePath + "/" +
+                            name + ".asset"))
             {
                 //		Debug.Log ("A tile for " + name + " already exists... Skipping...");
             }
             else
             {
-
-
                 //setup building the tile//
-                var tile = TileBuilder.CreateTile<ObjectTile>(LayerType.Objects);
+                ObjectTile tile = TileBuilder.CreateTile<ObjectTile>(LayerType.Objects);
 
                 //Cast the gameobject
-                var cast = AssetDatabase.LoadAssetAtPath(smallPath, (typeof(GameObject))) as GameObject;
+                GameObject cast = AssetDatabase.LoadAssetAtPath(smallPath, typeof(GameObject)) as GameObject;
                 if (barePath == "/WallMounts")
                 {
                     tile.Rotatable = true;
@@ -90,7 +81,6 @@ public class Prefab2Tile : EditorWindow
                 TileBuilder.CreateAsset(tile, name, "Assets/Tilemaps/Tiles/" + subject + "/" + barePath);
                 PreviewSpriteBuilder.Create(cast);
                 created++;
-
             }
         }
         EditorUtility.ClearProgressBar();
@@ -106,11 +96,13 @@ public class Prefab2Tile : EditorWindow
         int counter = 0;
         int cleaned = 0;
         string[] scan = Directory.GetFiles(basePath2, "*.png", SearchOption.AllDirectories);
-        foreach (String file in scan)
+        foreach (string file in scan)
         {
             counter++;
             int t = scan.Length;
-            EditorUtility.DisplayProgressBar(counter.ToString() + "/" + scan.Length + " Removing abundant preview sprites for " + subject, "Sprite: " + counter, (float)counter / (float)scan.Length);
+            EditorUtility.DisplayProgressBar(
+                counter + "/" + scan.Length + " Removing abundant preview sprites for " + subject,
+                "Sprite: " + counter, counter / (float) scan.Length);
             //			Debug.Log ("Longpath data: " + file);
 
             //Get the filename without extention and path
@@ -124,10 +116,10 @@ public class Prefab2Tile : EditorWindow
             //			Debug.Log ("barePath data: " + barePath);
 
             //Check if tile already exists
-            if (System.IO.File.Exists(Application.dataPath + "/Resources/Prefabs/" + subject + barePath + "/" + name + ".prefab"))
+            if (File.Exists(Application.dataPath + "/Resources/Prefabs/" + subject + barePath + "/" + name +
+                            ".prefab"))
             {
                 //				Debug.Log ("A prefab for " + name + " exists... Skipping...");
-
             }
             else
             {
@@ -135,7 +127,7 @@ public class Prefab2Tile : EditorWindow
                 FileUtil.DeleteFileOrDirectory(file + ".meta");
                 //				Debug.Log("DESTROY");
                 cleaned++;
-                UnityEditor.AssetDatabase.Refresh();
+                AssetDatabase.Refresh();
             }
         }
         EditorUtility.ClearProgressBar();
@@ -150,11 +142,13 @@ public class Prefab2Tile : EditorWindow
         int counter = 0;
         int cleaned = 0;
         string[] scan = Directory.GetFiles(basePath2, "*.asset", SearchOption.AllDirectories);
-        foreach (String file in scan)
+        foreach (string file in scan)
         {
             counter++;
             int t = scan.Length;
-            EditorUtility.DisplayProgressBar(counter.ToString() + "/" + scan.Length + " Removing abundant tiles for " + subject, "Tile: " + counter, (float)counter / (float)scan.Length);
+            EditorUtility.DisplayProgressBar(
+                counter + "/" + scan.Length + " Removing abundant tiles for " + subject, "Tile: " + counter,
+                counter / (float) scan.Length);
             //			Debug.Log ("Longpath data: " + file);
 
             //Get the filename without extention and path
@@ -168,7 +162,8 @@ public class Prefab2Tile : EditorWindow
             //			Debug.Log ("barePath data: " + barePath);
 
             //Check if tile already exists
-            if (System.IO.File.Exists(Application.dataPath + "/Resources/Prefabs/" + subject + "/" + barePath + "/" + name + ".prefab"))
+            if (File.Exists(Application.dataPath + "/Resources/Prefabs/" + subject + "/" + barePath + "/" +
+                            name + ".prefab"))
             {
                 //				Debug.Log ("A prefab for " + name + " exists... Skipping...");
             }
@@ -178,13 +173,10 @@ public class Prefab2Tile : EditorWindow
                 FileUtil.DeleteFileOrDirectory(file + ".meta");
                 //				Debug.Log("DESTROY");
                 cleaned++;
-                UnityEditor.AssetDatabase.Refresh();
+                AssetDatabase.Refresh();
             }
         }
         EditorUtility.ClearProgressBar();
         Debug.Log(cleaned + " / " + counter + " Tiles deleted for Prefabs");
-
-
     }
-
 }

@@ -1,8 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
-using UI;
 using UnityEngine.UI;
-
 
 public class temp_ClownBtn : MonoBehaviour
 {
@@ -12,7 +9,6 @@ public class temp_ClownBtn : MonoBehaviour
 
     public void KloonButton()
     {
-
         SoundManager.Play("Click01");
         float ranNum = Random.Range(1f, 3f);
         float ranNum2 = Random.Range(1f, 3f);

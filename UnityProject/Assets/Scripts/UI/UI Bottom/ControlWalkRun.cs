@@ -1,23 +1,18 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using System.Collections;
 
 namespace UI
 {
     public class ControlWalkRun : MonoBehaviour
     {
-
+        private Image image;
         public Sprite[] runWalkSprites;
 
         public bool running { get; set; }
 
-        private Image image;
-
-        void Start()
+        private void Start()
         {
-
             image = GetComponent<Image>();
-
         }
 
         /* 
@@ -34,7 +29,6 @@ namespace UI
             {
                 running = true;
                 image.sprite = runWalkSprites[1];
-
             }
             else
             {

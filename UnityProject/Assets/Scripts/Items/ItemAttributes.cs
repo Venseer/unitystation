@@ -1,57 +1,82 @@
-using System;
-using UnityEngine;
-using UnityEngine.Networking;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using UI;
+using UnityEngine;
+using UnityEngine.Networking;
+using Random = System.Random;
 
 [RequireComponent(typeof(ObjectBehaviour))]
 public class ItemAttributes : NetworkBehaviour
 {
+    private const string ObjItemClothing = "/obj/item/clothing";
     private static DmiIconData dmi;
     private static DmObjectData dm;
     private static string[] hierList = { };
 
+    //on-player references
+    private static readonly string[] onPlayer =
+    {
+        "mob/uniform",
+        "mob/underwear",
+        "mob/ties",
+        "mob/back",
+        "mob/belt_mirror",
+        "mob/belt",
+        "mob/eyes",
+        "mob/ears",
+        "mob/hands",
+        "mob/feet",
+        "mob/head",
+        "mob/mask",
+        "mob/neck",
+        "mob/suit"
+    };
+
     public ClothEnum cloth;
-
-    [SyncVar(hook = "ConstructItem")]
-    public string hierarchy;
-    //the bare minimum you need to to make magic work
-
-    // item name and description.
-    public string itemName;
-    //dm "name"
-    public string itemDescription;
-    //dm "desc"
-
-    public SpriteType spriteType;
-    public ItemType type;
-
-    //reference numbers for item on inhands spritesheet. should be one corresponding to player facing down
-    public int inHandReferenceRight;
-    public int inHandReferenceLeft;
+    private int clothingOffset = -1;
     public int clothingReference = -1;
+    private string desc;
 
-    public ItemSize size;
+    private Dictionary<string, string> dmDic;
     //dm "w_class";
 
     //		dm datafile info
     private string hier;
-    private Dictionary<string, string> dmDic;
-    private SpriteType masterType;
-    private ItemType itemType = ItemType.None;
+
+    [SyncVar(hook = "ConstructItem")] public string hierarchy;
+    private string icon;
+    private string icon_state;
+    private int inHandLeft = -1;
+
+    public int inHandReferenceLeft;
+
+    //reference numbers for item on inhands spritesheet. should be one corresponding to player facing down
+    public int inHandReferenceRight;
+
+    private int inHandRight = -1;
     private DmiIcon inventoryIcon;
     private string[] invSheetPaths;
-    private new string name;
-    private string icon;
-    private string desc;
-    private string icon_state;
     private string item_color;
     private string item_state;
-    private int inHandLeft = -1;
-    private int inHandRight = -1;
-    private int clothingOffset = -1;
+
+    //dm "name"
+    public string itemDescription;
+    //the bare minimum you need to to make magic work
+
+    // item name and description.
+    public string itemName;
+
+    private ItemType itemType = ItemType.None;
+    private SpriteType masterType;
+    private new string name;
+
+    public ItemSize size;
+    //dm "desc"
+
+    public SpriteType spriteType;
+    public ItemType type;
 
     public override void OnStartClient()
     {
@@ -59,7 +84,7 @@ public class ItemAttributes : NetworkBehaviour
         base.OnStartClient();
     }
 
-    IEnumerator WaitForLoad()
+    private IEnumerator WaitForLoad()
     {
         yield return new WaitForSeconds(2f);
         ConstructItem(hierarchy);
@@ -85,7 +110,9 @@ public class ItemAttributes : NetworkBehaviour
         //don't do anything if hierarchy string is empty
         hier = hierString.Trim();
         if (hier.Length == 0)
+        {
             return;
+        }
 
         //init datafiles
         if (!dmi)
@@ -113,9 +140,9 @@ public class ItemAttributes : NetworkBehaviour
         icon_state = tryGetAttr("icon_state");
         item_color = tryGetAttr("item_color"); //also a state
         item_state = tryGetAttr("item_state");
-        var states = new[] { icon_state, item_color, item_state };
+        string[] states = {icon_state, item_color, item_state};
 
-        masterType = getMasterType(hier);// aka SpriteType
+        masterType = getMasterType(hier); // aka SpriteType
         itemType = getItemType(hier, getInvIconPrefix(masterType));
         invSheetPaths = getItemClothSheetHier(itemType);
         //			size = getItemSize(tryGetAttr("w_class"));
@@ -141,6 +168,7 @@ public class ItemAttributes : NetworkBehaviour
         type = itemType;
         itemName = name;
         itemDescription = desc;
+        spriteType = masterType;
         GetComponentInChildren<SpriteRenderer>().sprite = stateSprite;
 
         //			Debug.Log(name + " size=" + size + " type=" + type + " spriteType=" 
@@ -167,10 +195,11 @@ public class ItemAttributes : NetworkBehaviour
         return new Sprite();
     }
 
-    string getItemDebugInfo()
+    private string getItemDebugInfo()
     {
-        return string.Format("name={0}, type={1}, spriteType={2} ({3}) : {4} / {5} / C: {6}, L: {7}, R: {8}, I: {9}" + '\n'
-        + dmDic.Keys.Aggregate("", (current, key) => current + (key + ": ") + dmDic[key] + "\n"),
+        return string.Format("name={0}, type={1}, spriteType={2} ({3}) : {4} / {5} / C: {6}, L: {7}, R: {8}, I: {9}" +
+                             '\n'
+                             + dmDic.Keys.Aggregate("", (current, key) => current + key + ": " + dmDic[key] + "\n"),
             name, itemType, spriteType,
             desc, icon_state, item_state,
             clothingReference, inHandLeft, inHandRight,
@@ -180,7 +209,10 @@ public class ItemAttributes : NetworkBehaviour
     private static SpriteType getMasterType(string hs)
     {
         if (hs.StartsWith(ObjItemClothing))
+        {
             return SpriteType.Clothing;
+        }
+
         return SpriteType.Items;
     }
 
@@ -215,12 +247,12 @@ public class ItemAttributes : NetworkBehaviour
         return dm != null && dmi != null;
     }
 
-    private /*static*/ DmiIcon tryGetInventoryIcon(/*DmiIconData dmi, string[] invSheetPaths, string icon = ""*/)
+    private /*static*/ DmiIcon tryGetInventoryIcon( /*DmiIconData dmi, string[] invSheetPaths, string icon = ""*/)
     {
         //determining invIcon
         for (int i = 0; i < invSheetPaths.Length; i++)
         {
-            var iconPath = DmiIconData.getIconPath(invSheetPaths[i]); //add extension junk
+            string iconPath = DmiIconData.getIconPath(invSheetPaths[i]); //add extension junk
             if (!iconPath.Equals("") && DmiIconData.Data.ContainsKey(iconPath) && icon.Equals(""))
             {
                 //					Debug.Log(name + ": iSheet = dmi.DataHier[" + iconPath +"] = " + dmi.Data[iconPath]);
@@ -234,7 +266,7 @@ public class ItemAttributes : NetworkBehaviour
             return DmiIconData.Data[icon];
         }
         //pretty bad choice, should use this only as last resort as it's usually pretty inaccurate
-        var invIcon = dmi.getIconByState(icon_state);
+        DmiIcon invIcon = dmi.getIconByState(icon_state);
         if (invIcon != null)
         {
             Debug.LogWarningFormat("{0} is doing bad dmi.getIconByState({1}) = {2}", name, icon_state, invIcon.icon);
@@ -247,12 +279,13 @@ public class ItemAttributes : NetworkBehaviour
     //getting stuff from whatever states provided (expected order is item_state, item_color, icon_state)
     private /*static*/ int tryGetClothingOffset(string[] states)
     {
-        var onPlayerClothSheetHier = getOnPlayerClothSheetHier(itemType);
+        string[] onPlayerClothSheetHier = getOnPlayerClothSheetHier(itemType);
         for (int i = 0; i < states.Length; i++)
         {
             if (!states[i].Equals(""))
             {
-                var state = dmi.searchStateInIcon(states[i], itemType == ItemType.None ? onPlayer : onPlayerClothSheetHier, 4, false);
+                DmiState state = dmi.searchStateInIcon(states[i],
+                    itemType == ItemType.None ? onPlayer : onPlayerClothSheetHier, 4, false);
                 if (state != null)
                 {
                     return state.offset;
@@ -260,22 +293,26 @@ public class ItemAttributes : NetworkBehaviour
             }
         }
 
-        Debug.LogError("No clothing offset found!  ClothHier=" + onPlayerClothSheetHier[0] + ", " + getItemDebugInfo());
+        //Debug.LogError("No clothing offset found!  ClothHier=" + onPlayerClothSheetHier[0] + ", " + getItemDebugInfo());
         return -1;
     }
 
     private /*static*/ int[] tryGetInHand()
     {
         if (item_state.Equals(""))
-            return new[] { -1, -1 };
+        {
+            return new[] {-1, -1};
+        }
 
-        var stateLH = dmi.searchStateInIconShallow(item_state,
-                                "mob/inhands/" + getMasterTypeHandsString(masterType) + "_lefthand");
+        string searchString = getMasterTypeHandsString(masterType);
 
-        var stateRH = dmi.searchStateInIconShallow(item_state,
-                                "mob/inhands/" + getMasterTypeHandsString(masterType) + "_righthand");
+        DmiState stateLH = dmi.searchStateInIconShallow(item_state, "mob/inhands/" + searchString + "_lefthand");
 
-        return new[] {stateLH == null ? -1 : stateLH.offset,
+        DmiState stateRH = dmi.searchStateInIconShallow(item_state, "mob/inhands/" + searchString + "_righthand");
+
+        return new[]
+        {
+            stateLH == null ? -1 : stateLH.offset,
             stateRH == null ? -1 : stateRH.offset
         };
     }
@@ -293,103 +330,86 @@ public class ItemAttributes : NetworkBehaviour
 
     private static string[] getItemClothSheetHier(ItemType type)
     {
-        var p = "obj/clothing/";
+        string p = "obj/clothing/";
         switch (type)
         {
             case ItemType.Belt:
-                return new[] { p + "belts" };
+                return new[] {p + "belts"};
             case ItemType.Back:
-                return new[] { p + "cloaks" };
+                return new[] {p + "cloaks"};
             case ItemType.Glasses:
-                return new[] { p + "glasses" };
+                return new[] {p + "glasses"};
             case ItemType.Gloves:
-                return new[] { p + "gloves" };
+                return new[] {p + "gloves"};
             case ItemType.Hat:
-                return new[] { p + "hats" };
+                return new[] {p + "hats"};
             case ItemType.Mask:
-                return new[] { p + "masks" };
+                return new[] {p + "masks"};
             case ItemType.Shoes:
-                return new[] { p + "shoes" };
+                return new[] {p + "shoes"};
             case ItemType.Suit:
-                return new[] { p + "suits" };
+                return new[] {p + "suits"};
             case ItemType.Neck:
-                return new[] {
+                return new[]
+                {
                     p + "ties",
                     p + "neck"
                 };
             case ItemType.Uniform:
-                return new[] { p + "uniforms" };
+                return new[] {p + "uniforms"};
             default:
-                return new[] { "" };
+                return new[] {""};
         }
     }
 
     private static string[] getOnPlayerClothSheetHier(ItemType type)
     {
-        var p = "mob/";
+        string p = "mob/";
         switch (type)
         {
             case ItemType.Belt:
-                return new[] {
+                return new[]
+                {
                     p + "belt",
                     p + "belt_mirror"
                 };
             case ItemType.Back:
-                return new[] { p + "back" };
+                return new[] {p + "back"};
             case ItemType.Glasses:
-                return new[] { p + "eyes" };
+                return new[] {p + "eyes"};
             case ItemType.Gloves:
-                return new[] { p + "hands" };
+                return new[] {p + "hands"};
             case ItemType.Hat:
-                return new[] { p + "head" };
+                return new[] {p + "head"};
             case ItemType.Ear:
-                return new[] { p + "ears" };
+                return new[] {p + "ears"};
             case ItemType.Mask:
-                return new[] { p + "mask" };
+                return new[] {p + "mask"};
             case ItemType.Shoes:
-                return new[] { p + "feet" };
+                return new[] {p + "feet"};
             case ItemType.Suit:
-                return new[] { p + "suit" };
+                return new[] {p + "suit"};
             case ItemType.Neck:
-                return new[] {
+                return new[]
+                {
                     p + "ties",
                     p + "neck"
                 };
             case ItemType.Uniform:
-                return new[] { p + "uniform" };
+                return new[] {p + "uniform"};
             default:
-                return new[] { "" };
+                return new[] {""};
         }
     }
-
-    //on-player references
-    private static readonly string[] onPlayer = {
-      "mob/uniform",
-      "mob/underwear",
-      "mob/ties",
-      "mob/back",
-      "mob/belt_mirror",
-      "mob/belt",
-      "mob/eyes",
-      "mob/ears",
-      "mob/hands",
-      "mob/feet",
-      "mob/head",
-      "mob/mask",
-      "mob/neck",
-      "mob/suit"
-    };
-
-    private const string ObjItemClothing = "/obj/item/clothing";
 
     private /*static*/ void randomizeClothHierIfEmpty()
     {
         if (hierList.Length == 0)
         {
-            var asset = Resources.Load(Path.Combine("metadata", "hier")) as TextAsset;
+            TextAsset asset = Resources.Load(Path.Combine("metadata", "hier")) as TextAsset;
             if (asset != null)
             {
-                var objects = asset.text.Split('\n').ToList();
+                List<string> objects = asset.text.Split('\n').ToList();
                 objects.RemoveAll(x => !x.Contains("cloth"));
                 hierList = objects.ToArray();
             }
@@ -397,7 +417,7 @@ public class ItemAttributes : NetworkBehaviour
         }
         if (hierarchy.Length == 0 && spriteType == SpriteType.Clothing)
         {
-            hierarchy = hierList[new System.Random().Next(hierList.Length)];
+            hierarchy = hierList[new Random().Next(hierList.Length)];
         }
     }
 
@@ -407,7 +427,6 @@ public class ItemAttributes : NetworkBehaviour
         string sCut;
         if (!cutOff.Equals("") && s.StartsWith(cutOff))
         {
-
             sCut = s.Substring(cutOff.Length + 1).Split('/')[0];
             //				Debug.Log("sCut = "+ sCut);
         }
@@ -420,30 +439,45 @@ public class ItemAttributes : NetworkBehaviour
             case "uniform":
             case "uniforms":
             case "under":
-            case "underwear": return ItemType.Uniform;
+            case "underwear":
+                return ItemType.Uniform;
             case "back":
-            case "cloaks": return ItemType.Back;
+            case "cloaks":
+                return ItemType.Back;
             case "belt_mirror":
             case "belt":
-            case "belts": return ItemType.Belt;
+            case "belts":
+                return ItemType.Belt;
             case "eyes":
-            case "glasses": return ItemType.Glasses;
-            case "ears": return ItemType.Ear;
+            case "glasses":
+                return ItemType.Glasses;
+            case "radio":
+            case "ears":
+                return ItemType.Ear;
             case "gloves":
-            case "hands": return ItemType.Gloves;
+            case "hands":
+                return ItemType.Gloves;
             case "shoes":
-            case "feet": return ItemType.Shoes;
+            case "feet":
+                return ItemType.Shoes;
             case "head":
-            case "hats": return ItemType.Hat;
+            case "hats":
+                return ItemType.Hat;
             case "mask":
-            case "masks": return ItemType.Mask;
+            case "masks":
+                return ItemType.Mask;
             case "tie":
             case "ties":
-            case "neck": return ItemType.Neck;
+            case "neck":
+                return ItemType.Neck;
             case "suit":
             case "flightsuit":
-            case "suits": return ItemType.Suit;
-            default: return ItemType.None;
+            case "suits":
+                return ItemType.Suit;
+            default:
+                //GetItemType will be called several times on failure, with different string parameters
+                Debug.Log("Could not find item type for " + sCut + ". Will attempt fallbacks if any exist.");
+                return ItemType.None;
         }
     }
 
@@ -451,12 +485,18 @@ public class ItemAttributes : NetworkBehaviour
     {
         switch (s)
         {
-            case "WEIGHT_CLASS_TINY": return ItemSize.Tiny;
-            case "WEIGHT_CLASS_SMALL": return ItemSize.Small;
-            case "WEIGHT_CLASS_NORMAL": return ItemSize.Medium;
-            case "WEIGHT_CLASS_BULKY": return ItemSize.Large;
-            case "WEIGHT_CLASS_HUGE": return ItemSize.Huge;
-            default: return ItemSize.Small;
+            case "WEIGHT_CLASS_TINY":
+                return ItemSize.Tiny;
+            case "WEIGHT_CLASS_SMALL":
+                return ItemSize.Small;
+            case "WEIGHT_CLASS_NORMAL":
+                return ItemSize.Medium;
+            case "WEIGHT_CLASS_BULKY":
+                return ItemSize.Large;
+            case "WEIGHT_CLASS_HUGE":
+                return ItemSize.Huge;
+            default:
+                return ItemSize.Small;
         }
     }
 
@@ -467,10 +507,12 @@ public class ItemAttributes : NetworkBehaviour
     public int NetworkInHandRefLeft()
     {
         if (inHandReferenceLeft == -1)
+        {
             return -1;
+        }
 
         string code = SpriteTypeCode();
-        string newRef = code + inHandReferenceLeft.ToString();
+        string newRef = code + inHandReferenceLeft;
         int i = -1;
         int.TryParse(newRef, out i);
         return i;
@@ -479,10 +521,12 @@ public class ItemAttributes : NetworkBehaviour
     public int NetworkInHandRefRight()
     {
         if (inHandReferenceRight == -1)
+        {
             return -1;
+        }
 
         string code = SpriteTypeCode();
-        string newRef = code + inHandReferenceRight.ToString();
+        string newRef = code + inHandReferenceRight;
         int i = -1;
         int.TryParse(newRef, out i);
         return i;
@@ -508,12 +552,12 @@ public class ItemAttributes : NetworkBehaviour
 
     public void OnMouseEnter()
     {
-        UI.UIManager.SetToolTip = this.itemName + " (" + this.itemDescription + ")";
+        UIManager.SetToolTip = itemName + " (" + itemDescription + ")";
     }
 
     public void OnMouseExit()
     {
-        UI.UIManager.SetToolTip = "";
+        UIManager.SetToolTip = "";
     }
 
     // Sends examine event to all monobehaviors on gameobject
@@ -533,8 +577,9 @@ public class ItemAttributes : NetworkBehaviour
 
     public void OnExamine()
     {
-        if (!String.IsNullOrEmpty(itemDescription)) {
-			UI.UIManager.Chat.AddChatEvent(new ChatEvent(itemDescription, ChatChannel.Examine));
-		}
+        if (!string.IsNullOrEmpty(itemDescription))
+        {
+            UIManager.Chat.AddChatEvent(new ChatEvent(itemDescription, ChatChannel.Examine));
+        }
     }
 }

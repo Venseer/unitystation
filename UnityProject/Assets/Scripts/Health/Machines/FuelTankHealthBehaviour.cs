@@ -1,5 +1,4 @@
-﻿
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
 public class FuelTankHealthBehaviour : HealthBehaviour
@@ -9,24 +8,24 @@ public class FuelTankHealthBehaviour : HealthBehaviour
     private void Awake()
     {
         pushPull = GetComponent<PushPull>();
-
     }
 
     protected override void OnDeathActions()
     {
         pushPull.BreakPull();
-        var delay = 0f;
+        float delay = 0f;
         switch (LastDamageType)
         {
             case DamageType.BRUTE:
-                delay = 0.1f; break;
+                delay = 0.1f;
+                break;
             case DamageType.BURN:
-                delay = Random.Range(0.2f, 2f); break; //surprise
+                delay = Random.Range(0.2f, 2f);
+                break; //surprise
         }
         StartCoroutine(explodeWithDelay(delay, LastDamagedBy));
 
         //            Debug.Log("FuelTank ded!");
-
     }
 
     private IEnumerator explodeWithDelay(float delay, string damagedBy)

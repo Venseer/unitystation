@@ -1,37 +1,36 @@
-﻿using PlayGroup;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
+using PlayGroup;
+using PlayGroups.Input;
+using Tilemaps.Scripts;
+using Tilemaps.Scripts.Behaviours.Objects;
 using UI;
 using UnityEngine;
 using UnityEngine.Networking;
-using InputControl;
-using Tilemaps.Scripts;
-using Tilemaps.Scripts.Behaviours.Objects;
 
 namespace Cupboards
 {
     public class ClosetControl : InputTrigger
     {
-        public Sprite doorOpened;
         private Sprite doorClosed;
-
-        public SpriteRenderer spriteRenderer;
-        private RegisterCloset registerTile;
-        private Matrix matrix;
-
-        [SyncVar(hook = "LockUnlock")]
-        public bool IsLocked;
-        public LockLightController lockLight;
-        public GameObject items;
-
-        [SyncVar(hook = "OpenClose")]
-        public bool IsClosed;
+        public Sprite doorOpened;
 
         //Inventory
         private IEnumerable<ObjectBehaviour> heldItems = new List<ObjectBehaviour>();
+
         private IEnumerable<ObjectBehaviour> heldPlayers = new List<ObjectBehaviour>();
 
-        void Awake()
+        [SyncVar(hook = "OpenClose")] public bool IsClosed;
+
+        [SyncVar(hook = "LockUnlock")] public bool IsLocked;
+        public GameObject items;
+        public LockLightController lockLight;
+        private Matrix matrix;
+        private RegisterCloset registerTile;
+
+        public SpriteRenderer spriteRenderer;
+
+        private void Awake()
         {
             doorClosed = spriteRenderer.sprite;
         }
@@ -49,7 +48,7 @@ namespace Cupboards
             base.OnStartServer();
         }
 
-        IEnumerator WaitForServerReg()
+        private IEnumerator WaitForServerReg()
         {
             yield return new WaitForSeconds(1f);
             SetItems(!IsClosed);
@@ -61,7 +60,7 @@ namespace Cupboards
             base.OnStartClient();
         }
 
-        IEnumerator WaitForLoad()
+        private IEnumerator WaitForLoad()
         {
             yield return new WaitForSeconds(3f);
             bool iC = IsClosed;
@@ -98,7 +97,7 @@ namespace Cupboards
             }
         }
 
-        void OpenClose(bool isClosed)
+        private void OpenClose(bool isClosed)
         {
             if (isClosed)
             {
@@ -110,13 +109,14 @@ namespace Cupboards
             }
         }
 
-        void LockUnlock(bool lockIt)
+        private void LockUnlock(bool lockIt)
         {
             if (lockLight == null)
+            {
                 return;
+            }
             if (lockIt)
             {
-
             }
             else
             {
@@ -124,7 +124,7 @@ namespace Cupboards
             }
         }
 
-        void Close()
+        private void Close()
         {
             registerTile.IsClosed = true;
             SoundManager.PlayAtPosition("OpenClose", transform.position);
@@ -135,7 +135,7 @@ namespace Cupboards
             }
         }
 
-        void Open()
+        private void Open()
         {
             registerTile.IsClosed = false;
             SoundManager.PlayAtPosition("OpenClose", transform.position);
@@ -146,11 +146,13 @@ namespace Cupboards
             }
         }
 
-        public override void Interact(GameObject originator, string hand)
+        public override void Interact(GameObject originator, Vector3 position, string hand)
         {
             //FIXME this should be rewritten to net messages, see i.e. TableTrigger
             if (Input.GetKey(KeyCode.LeftControl))
+            {
                 return;
+            }
 
             if (PlayerManager.PlayerInReach(transform))
             {
@@ -163,12 +165,12 @@ namespace Cupboards
                 GameObject item = UIManager.Hands.CurrentSlot.Clear();
                 if (item != null)
                 {
-                    var targetPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
-                    targetPosition.z = -0.2f;
-                    PlayerManager.LocalPlayerScript.playerNetworkActions.PlaceItem(UIManager.Hands.CurrentSlot.eventName, transform.position, null);
+                    Vector3 targetPosition = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+                    targetPosition.z = 0f;
+                    PlayerManager.LocalPlayerScript.playerNetworkActions.PlaceItem(
+                        UIManager.Hands.CurrentSlot.eventName, transform.position, null);
 
                     item.BroadcastMessage("OnRemoveFromInventory", null, SendMessageOptions.DontRequireReceiver);
-                    //
                 }
                 else
                 {
@@ -179,7 +181,6 @@ namespace Cupboards
 
         private void SetItems(bool open)
         {
-
             if (!open)
             {
                 SetItemsAliveState(false);
@@ -195,12 +196,16 @@ namespace Cupboards
         private void SetItemsAliveState(bool on)
         {
             if (!on)
+            {
                 heldItems = matrix.Get<ObjectBehaviour>(registerTile.Position, ObjectType.Item);
-
-            foreach (var item in heldItems)
+            }
+            foreach (ObjectBehaviour item in heldItems)
             {
                 if (on)
+                {
                     item.transform.position = transform.position;
+                }
+
                 item.visibleState = on;
             }
         }
@@ -208,12 +213,16 @@ namespace Cupboards
         private void SetPlayersAliveState(bool on)
         {
             if (!on)
+            {
                 heldPlayers = matrix.Get<ObjectBehaviour>(registerTile.Position, ObjectType.Player);
+            }
 
-            foreach (var player in heldPlayers)
+            foreach (ObjectBehaviour player in heldPlayers)
             {
                 if (on)
+                {
                     player.transform.position = transform.position;
+                }
                 player.visibleState = on;
             }
         }

@@ -1,25 +1,13 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using Sprites;
 using UnityEngine;
 using UnityEngine.Networking;
-using Sprites;
 
 public class EffectsFactory : NetworkBehaviour
 {
-    private static EffectsFactory effectsFactory;
+    public static EffectsFactory Instance;
 
-    public static EffectsFactory Instance
-    {
-        get
-        {
-            if (effectsFactory == null)
-            {
-                effectsFactory = FindObjectOfType<EffectsFactory>();
-                Instance.Init();
-            }
-            return effectsFactory;
-        }
-    }
+    //Parents to make tidy
+    private GameObject shroudParent;
 
     private GameObject fireTile { get; set; }
     private GameObject scorchMarksTile { get; set; }
@@ -27,27 +15,36 @@ public class EffectsFactory : NetworkBehaviour
 
     private GameObject bloodTile { get; set; }
 
-    //Parents to make tidy
-    private GameObject shroudParent;
+    private void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(this);
+        }
+    }
 
-    void Init()
+    private void Start()
     {
         //Do init stuff
-        Instance.fireTile = Resources.Load("FireTile") as GameObject;
-        Instance.scorchMarksTile = Resources.Load("ScorchMarks") as GameObject;
-        Instance.shroudTile = Resources.Load("ShroudTile") as GameObject;
-        Instance.bloodTile = Resources.Load("BloodSplat") as GameObject;
+        fireTile = Resources.Load("FireTile") as GameObject;
+        scorchMarksTile = Resources.Load("ScorchMarks") as GameObject;
+        shroudTile = Resources.Load("ShroudTile") as GameObject;
+        bloodTile = Resources.Load("BloodSplat") as GameObject;
         //Parents
-        Instance.shroudParent = new GameObject();
-        Instance.shroudParent.transform.position += new Vector3(0.5f, 0.5f, 0);
-        Instance.shroudParent.name = "FieldOfView(Shrouds)";
+        shroudParent = new GameObject();
+        shroudParent.transform.position += new Vector3(0.5f, 0.5f, 0);
+        shroudParent.name = "FieldOfView(Shrouds)";
     }
 
     //FileTiles are client side effects only, no need for network sync (triggered by same event on all clients/server)
     public void SpawnFileTile(float fuelAmt, Vector3 position)
     {
         //ClientSide pool spawn
-        GameObject fireObj = PoolManager.PoolClientInstantiate(Instance.fireTile, position, Quaternion.identity);
+        GameObject fireObj = PoolManager.Instance.PoolClientInstantiate(fireTile, position, Quaternion.identity);
         FireTile fT = fireObj.GetComponent<FireTile>();
         fT.StartFire(fuelAmt);
     }
@@ -55,14 +52,15 @@ public class EffectsFactory : NetworkBehaviour
     public GameObject SpawnScorchMarks(Transform parent)
     {
         //ClientSide spawn
-        GameObject sM = PoolManager.PoolClientInstantiate(Instance.scorchMarksTile, parent.position, Quaternion.identity);
+        GameObject sM =
+            PoolManager.Instance.PoolClientInstantiate(scorchMarksTile, parent.position, Quaternion.identity);
         sM.transform.parent = parent;
         return sM;
     }
 
     public GameObject SpawnShroudTile(Vector3 pos)
     {
-        GameObject sT = PoolManager.PoolClientInstantiate(Instance.shroudTile, pos, Quaternion.identity);
+        GameObject sT = PoolManager.Instance.PoolClientInstantiate(shroudTile, pos, Quaternion.identity);
         sT.transform.parent = shroudParent.transform;
         return sT;
     }
@@ -70,7 +68,7 @@ public class EffectsFactory : NetworkBehaviour
     [Server]
     public void BloodSplat(Vector3 pos, BloodSplatSize splatSize)
     {
-        GameObject b = PoolManager.PoolNetworkInstantiate(Instance.bloodTile, pos, Quaternion.identity);
+        GameObject b = PoolManager.Instance.PoolNetworkInstantiate(bloodTile, pos, Quaternion.identity);
         BloodSplat bSplat = b.GetComponent<BloodSplat>();
         //choose a random blood sprite
         int spriteNum = 0;

@@ -1,28 +1,30 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
 using UnityEditor;
-using System.Collections;
-using System.Collections.Generic;
+using UnityEngine;
 
 public class SearchAndDestroy : EditorWindow
 {
+    private string componentName = "";
+    private int editorMode, editorModeOld;
+
+    private List<string> listResult;
+
+
+    private readonly string[] modes =
+        {"Search for component usage", "Search for missing components", "Remove from All prefabs"};
+
+    private Vector2 scroll;
+    private MonoScript targetComponent, lastChecked;
+
     [MenuItem("Tools/Components: Search and Destroy")]
-    static void Init()
+    private static void Init()
     {
-        SearchAndDestroy window = (SearchAndDestroy)EditorWindow.GetWindow(typeof(SearchAndDestroy));
+        SearchAndDestroy window = (SearchAndDestroy) GetWindow(typeof(SearchAndDestroy));
         window.Show();
         window.position = new Rect(50, 100, 600, 600);
     }
 
-
-    string[] modes = new string[] { "Search for component usage", "Search for missing components", "Remove from All prefabs" };
-
-    List<string> listResult;
-    int editorMode, editorModeOld;
-    MonoScript targetComponent, lastChecked;
-    string componentName = "";
-    Vector2 scroll;
-
-    void OnGUI()
+    private void OnGUI()
     {
         GUILayout.Space(4);
         int oldValue = GUI.skin.window.padding.bottom;
@@ -44,7 +46,7 @@ public class SearchAndDestroy : EditorWindow
         switch (editorMode)
         {
             case 0:
-                targetComponent = (MonoScript)EditorGUILayout.ObjectField(targetComponent, typeof(MonoScript), false);
+                targetComponent = (MonoScript) EditorGUILayout.ObjectField(targetComponent, typeof(MonoScript), false);
 
                 if (targetComponent != lastChecked)
                 {
@@ -59,8 +61,9 @@ public class SearchAndDestroy : EditorWindow
                     foreach (string prefab in allPrefabs)
                     {
                         counter++;
-                        EditorUtility.DisplayProgressBar(t.ToString() + "/" + t + " Searching for Component...", "prefab: " + counter, (float)counter / (float)t);
-                        string[] single = new string[] { prefab };
+                        EditorUtility.DisplayProgressBar(t + "/" + t + " Searching for Component...",
+                            "prefab: " + counter, counter / (float) t);
+                        string[] single = {prefab};
                         string[] dependencies = AssetDatabase.GetDependencies(single);
                         foreach (string dependedAsset in dependencies)
                         {
@@ -83,12 +86,13 @@ public class SearchAndDestroy : EditorWindow
                     foreach (string prefab in allPrefabs)
                     {
                         counter++;
-                        EditorUtility.DisplayProgressBar(t.ToString() + "/" + t + " Searching for... nothing... ", "prefab: " + counter, (float)counter / (float)t);
-                        UnityEngine.Object o = AssetDatabase.LoadMainAssetAtPath(prefab);
+                        EditorUtility.DisplayProgressBar(t + "/" + t + " Searching for... nothing... ",
+                            "prefab: " + counter, counter / (float) t);
+                        Object o = AssetDatabase.LoadMainAssetAtPath(prefab);
                         GameObject go;
                         try
                         {
-                            go = (GameObject)o;
+                            go = (GameObject) o;
                             Component[] components = go.GetComponentsInChildren<Component>(true);
                             foreach (Component c in components)
                             {
@@ -101,14 +105,13 @@ public class SearchAndDestroy : EditorWindow
                         catch
                         {
                             Debug.Log("For some reason, prefab " + prefab + " won't cast to GameObject");
-
                         }
                     }
                     EditorUtility.ClearProgressBar();
                 }
                 break;
             case 2:
-                targetComponent = (MonoScript)EditorGUILayout.ObjectField(targetComponent, typeof(MonoScript), false);
+                targetComponent = (MonoScript) EditorGUILayout.ObjectField(targetComponent, typeof(MonoScript), false);
 
                 if (targetComponent != lastChecked)
                 {
@@ -124,8 +127,9 @@ public class SearchAndDestroy : EditorWindow
                     foreach (string prefab in allPrefabs)
                     {
                         counter++;
-                        EditorUtility.DisplayProgressBar(counter.ToString() + "/" + t + " Removing Component...", "prefab: " + counter, (float)counter / (float)t);
-                        string[] single = new string[] { prefab };
+                        EditorUtility.DisplayProgressBar(counter + "/" + t + " Removing Component...",
+                            "prefab: " + counter, counter / (float) t);
+                        string[] single = {prefab};
                         string[] dependencies = AssetDatabase.GetDependencies(single);
                         foreach (string dependedAsset in dependencies)
                         {
@@ -137,15 +141,17 @@ public class SearchAndDestroy : EditorWindow
                                 //			Debug.Log ("DETROYED");
                                 //			var castPrefab = AssetDatabase.LoadAssetAtPath(prefab, (typeof(GameObject))) as GameObject;
                                 //			var cast = AssetDatabase.LoadAssetAtPath(prefab, (typeof(GameObject))) as GameObject;
-                                var cast = PrefabUtility.InstantiatePrefab(AssetDatabase.LoadAssetAtPath(prefab, typeof(GameObject))) as GameObject;
+                                GameObject cast = PrefabUtility.InstantiatePrefab(
+                                    AssetDatabase.LoadAssetAtPath(prefab, typeof(GameObject))) as GameObject;
 
                                 //			EditorUtility.SetDirty (castGO);
-                                var component = cast.GetComponent(componentName) as Component;
+                                Component component = cast.GetComponent(componentName);
                                 DestroyImmediate(component, true);
                                 //Debug.Log
                                 //			PrefabUtility.ReplacePrefab(castGO, castPrefab, ReplacePrefabOptions.Default);
-                                PrefabUtility.ReplacePrefab(cast, PrefabUtility.GetPrefabParent(cast), ReplacePrefabOptions.ConnectToPrefab);
-                                GameObject.DestroyImmediate(cast, true);
+                                PrefabUtility.ReplacePrefab(cast, PrefabUtility.GetPrefabParent(cast),
+                                    ReplacePrefabOptions.ConnectToPrefab);
+                                DestroyImmediate(cast, true);
                                 Debug.Log("Removed " + componentName + " From " + prefab);
                                 i++;
                             }
@@ -155,18 +161,21 @@ public class SearchAndDestroy : EditorWindow
                     EditorUtility.ClearProgressBar();
                 }
                 break;
-
         }
 
         if (listResult != null)
         {
             if (listResult.Count == 0)
             {
-                GUILayout.Label(editorMode == 0 ? (componentName == "" ? "Choose a component" : "No prefabs use component " + componentName) : ("No prefabs have missing components!\nClick Search to check again"));
+                GUILayout.Label(editorMode == 0
+                    ? (componentName == "" ? "Choose a component" : "No prefabs use component " + componentName)
+                    : "No prefabs have missing components!\nClick Search to check again");
             }
             else
             {
-                GUILayout.Label(editorMode == 0 ? ("The following prefabs use component " + componentName + ":") : ("The following prefabs have missing components:"));
+                GUILayout.Label(editorMode == 0
+                    ? "The following prefabs use component " + componentName + ":"
+                    : "The following prefabs have missing components:");
                 scroll = GUILayout.BeginScrollView(scroll);
                 foreach (string s in listResult)
                 {
@@ -181,7 +190,6 @@ public class SearchAndDestroy : EditorWindow
                 GUILayout.EndScrollView();
             }
         }
-
     }
 
     public static string[] GetAllPrefabs()
@@ -190,7 +198,10 @@ public class SearchAndDestroy : EditorWindow
         List<string> result = new List<string>();
         foreach (string s in temp)
         {
-            if (s.Contains(".prefab")) result.Add(s);
+            if (s.Contains(".prefab"))
+            {
+                result.Add(s);
+            }
         }
         return result.ToArray();
     }

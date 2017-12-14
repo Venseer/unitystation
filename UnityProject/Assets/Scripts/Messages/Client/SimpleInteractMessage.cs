@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -19,7 +18,7 @@ public class SimpleInteractMessage : ClientMessage<SimpleInteractMessage>
 
     public static SimpleInteractMessage Send(GameObject subject)
     {
-        var msg = new SimpleInteractMessage { Subject = subject.GetComponent<NetworkIdentity>().netId };
+        SimpleInteractMessage msg = new SimpleInteractMessage {Subject = subject.GetComponent<NetworkIdentity>().netId};
         msg.Send();
         return msg;
     }
@@ -34,10 +33,10 @@ public class SimpleInteractMessage : ClientMessage<SimpleInteractMessage>
         base.Deserialize(reader);
         Subject = reader.ReadNetworkId();
     }
+
     public override void Serialize(NetworkWriter writer)
     {
         base.Serialize(writer);
         writer.Write(Subject);
     }
-
 }

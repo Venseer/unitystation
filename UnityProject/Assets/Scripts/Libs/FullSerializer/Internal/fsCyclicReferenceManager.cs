@@ -6,30 +6,14 @@ namespace FullSerializer.Internal
 {
     public class fsCyclicReferenceManager
     {
-        // We use the default ReferenceEquals when comparing two objects because
-        // custom objects may override equals methods. These overriden equals may
-        // treat equals differently; we want to serialize/deserialize the object
-        // graph *identically* to how it currently exists.
-        class ObjectReferenceEqualityComparator : IEqualityComparer<object>
-        {
-            bool IEqualityComparer<object>.Equals(object x, object y)
-            {
-                return ReferenceEquals(x, y);
-            }
-
-            int IEqualityComparer<object>.GetHashCode(object obj)
-            {
-                return RuntimeHelpers.GetHashCode(obj);
-            }
-
-            public static readonly IEqualityComparer<object> Instance = new ObjectReferenceEqualityComparator();
-        }
-
-        private Dictionary<object, int> _objectIds = new Dictionary<object, int>(ObjectReferenceEqualityComparator.Instance);
-        private int _nextId;
+        private int _depth;
 
         private Dictionary<int, object> _marked = new Dictionary<int, object>();
-        private int _depth;
+
+        private int _nextId;
+
+        private Dictionary<object, int> _objectIds =
+            new Dictionary<object, int>(ObjectReferenceEqualityComparator.Instance);
 
         public void Enter()
         {
@@ -61,10 +45,10 @@ namespace FullSerializer.Internal
             if (_marked.ContainsKey(id) == false)
             {
                 throw new InvalidOperationException("Internal Deserialization Error - Object " +
-                    "definition has not been encountered for object with id=" + id +
-                    "; have you reordered or modified the serialized data? If this is an issue " +
-                    "with an unmodified Full Serializer implementation and unmodified serialization " +
-                    "data, please report an issue with an included test case.");
+                                                    "definition has not been encountered for object with id=" + id +
+                                                    "; have you reordered or modified the serialized data? If this is an issue " +
+                                                    "with an unmodified Full Serializer implementation and unmodified serialization " +
+                                                    "data, please report an issue with an included test case.");
             }
 
             return _marked[id];
@@ -98,10 +82,29 @@ namespace FullSerializer.Internal
             if (_marked.ContainsKey(referenceId))
             {
                 throw new InvalidOperationException("Internal Error - " + item +
-                    " has already been marked as serialized");
+                                                    " has already been marked as serialized");
             }
 
             _marked[referenceId] = item;
+        }
+
+        // We use the default ReferenceEquals when comparing two objects because
+        // custom objects may override equals methods. These overriden equals may
+        // treat equals differently; we want to serialize/deserialize the object
+        // graph *identically* to how it currently exists.
+        private class ObjectReferenceEqualityComparator : IEqualityComparer<object>
+        {
+            public static readonly IEqualityComparer<object> Instance = new ObjectReferenceEqualityComparator();
+
+            bool IEqualityComparer<object>.Equals(object x, object y)
+            {
+                return ReferenceEquals(x, y);
+            }
+
+            int IEqualityComparer<object>.GetHashCode(object obj)
+            {
+                return RuntimeHelpers.GetHashCode(obj);
+            }
         }
     }
 }

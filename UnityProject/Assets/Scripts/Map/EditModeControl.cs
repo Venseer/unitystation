@@ -1,18 +1,16 @@
 ﻿using UnityEngine;
-using System.Collections;
 
 [ExecuteInEditMode]
 public class EditModeControl : MonoBehaviour
 {
+    public float depth;
     public float snapValue = 1f;
-    public float depth = 0f;
 
     public bool useInGame;
 
-    void Start()
+    private void Start()
     {
         Snap(); // snap on instantiate
-
     }
 
     public Vector3 Snap()
@@ -28,7 +26,7 @@ public class EditModeControl : MonoBehaviour
         // so 1.45 to nearest .5 is 1.5
         float x = Mathf.Round(rawPos.x * snapInverse) / snapInverse;
         float y = Mathf.Round(rawPos.y * snapInverse) / snapInverse;
-        float z = depth;  // depth from camera
+        float z = depth; // depth from camera
 
         return new Vector3(x, y, z);
     }

@@ -1,27 +1,29 @@
 ﻿using System.Collections.Generic;
+using UI;
 using UnityEngine;
 using UnityEngine.Networking;
-using UI;
-using System.Linq;
 
 public class PlayerList : NetworkBehaviour
 {
-    public static PlayerList playerList;
-    public SyncListString nameList = new SyncListString();
+    public static PlayerList Instance;
+
     public Dictionary<string, GameObject> connectedPlayers = new Dictionary<string, GameObject>();
+    public SyncListString nameList = new SyncListString();
+
+    private int numSameNames;
+
     //For combat demo
     public Dictionary<string, int> playerScores = new Dictionary<string, int>();
-    int numSameNames = 0;
 
-    public static PlayerList Instance
+    private void Awake()
     {
-        get
+        if (Instance == null)
         {
-            if (!playerList)
-            {
-                playerList = FindObjectOfType<PlayerList>();
-            }
-            return playerList;
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
         }
     }
 
@@ -32,10 +34,11 @@ public class PlayerList : NetworkBehaviour
         base.OnStartClient();
     }
 
-    void UpdateFromServer(SyncListString.Operation op, int index)
+    private void UpdateFromServer(SyncList<string>.Operation op, int index)
     {
         RefreshPlayerListText();
     }
+
     //Check name on server
     public string CheckName(string name)
     {
@@ -45,7 +48,7 @@ public class PlayerList : NetworkBehaviour
         {
             Debug.Log("NAME ALREADY EXISTS: " + checkName);
             numSameNames++;
-            checkName = name + numSameNames.ToString();
+            checkName = name + numSameNames;
             Debug.Log("TRYING: " + checkName);
         }
         nameList.Add(checkName);
@@ -69,7 +72,8 @@ public class PlayerList : NetworkBehaviour
     [Server]
     public void ReportScores()
     {
-
+        //TODO: Add server announcement messages
+        /*
         var scoreSort = playerScores.OrderByDescending(pair => pair.Value)
             .ToDictionary(pair => pair.Key, pair => pair.Value);
 
@@ -77,8 +81,9 @@ public class PlayerList : NetworkBehaviour
         {
             UIManager.Chat.ReportToChannel("<b>" + ps.Key + "</b>  total kills:  <b>" + ps.Value + "</b>");
         }
+        */
 
-        UIManager.Chat.ReportToChannel("Game Restarting in 10 seconds...");
+        PostToChatMessage.Send("Game Restarting in 10 seconds...", ChatChannel.System);
     }
 
     public void RemovePlayer(string playerName)

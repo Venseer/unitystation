@@ -1,38 +1,46 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using AccessType;
+using UI;
 using UnityEngine;
 using UnityEngine.Networking;
-using AccessType;
 
 /// <summary>
-/// ID card properties
+///     ID card properties
 /// </summary>
 public class IDCard : NetworkBehaviour
 {
-    public int MiningPoints = 0; //For redeeming at mining equipment vendors
-                                 //The actual list of access allowed set via the server and synced to all clients
+    //The actual list of access allowed set via the server and synced to all clients
     public SyncListInt accessSyncList = new SyncListInt();
+
+    public Sprite captainSprite;
+    public Sprite commandSprite;
+
+    //What type of card? (standard, command, captain, emag etc)
+    [SyncVar(hook = "SyncIDCardType")] public int idCardTypeInt;
+
+    private bool isInit;
+
+    [SyncVar(hook = "SyncJobType")] public int jobTypeInt;
+
     [Tooltip("This is used to place ID cards via map editor and then setting their initial access type")]
     public List<Access> ManuallyAddedAccess = new List<Access>();
+
     [Tooltip("For cards added via map editor and set their initial IDCardType here. This will only work" +
-             "if there are entries in ManuallyAddedAccess list")]
-    public IDCardType ManuallyAssignCardType;
-    [SyncVar(hook = "SyncName")]
-    public string RegisteredName;
-    [SyncVar(hook = "SyncJobType")]
-    public int jobTypeInt;
-    //What type of card? (standard, command, captain, emag etc)
-    [SyncVar(hook = "SyncIDCardType")]
-    public int idCardTypeInt;
-    public JobType GetJobType { get { return (JobType)jobTypeInt; } }
-    public IDCardType GetIdCardType { get { return (IDCardType)idCardTypeInt; } }
-    private bool isInit = false;
+             "if there are entries in ManuallyAddedAccess list")] public IDCardType ManuallyAssignCardType;
+
+    public int MiningPoints; //For redeeming at mining equipment vendors
+
+    [SyncVar(hook = "SyncName")] public string RegisteredName;
 
     //To switch the card sprites when the type changes
     public SpriteRenderer spriteRenderer;
+
     public Sprite standardSprite;
-    public Sprite commandSprite;
-    public Sprite captainSprite;
+
+    public JobType GetJobType => (JobType) jobTypeInt;
+
+    public IDCardType GetIdCardType => (IDCardType) idCardTypeInt;
 
     public override void OnStartServer()
     {
@@ -47,9 +55,12 @@ public class IDCard : NetworkBehaviour
         base.OnStartClient();
     }
 
-    void InitCard()
+    private void InitCard()
     {
-        if (isInit) return;
+        if (isInit)
+        {
+            return;
+        }
 
         isInit = true;
         accessSyncList.Callback = SyncAccess;
@@ -60,12 +71,13 @@ public class IDCard : NetworkBehaviour
             if (ManuallyAddedAccess.Count > 0)
             {
                 AddAccessList(ManuallyAddedAccess);
-                idCardTypeInt = (int)ManuallyAssignCardType;
+                idCardTypeInt = (int) ManuallyAssignCardType;
             }
         }
     }
+
     //Sync all of the current in game ID's throughout the map with new players
-    IEnumerator WaitForLoad()
+    private IEnumerator WaitForLoad()
     {
         yield return new WaitForSeconds(3f);
         SyncName(RegisteredName);
@@ -78,9 +90,9 @@ public class IDCard : NetworkBehaviour
     {
         for (int i = 0; i < accessToBeAdded.Count; i++)
         {
-            if (!accessSyncList.Contains((int)accessToBeAdded[i]))
+            if (!accessSyncList.Contains((int) accessToBeAdded[i]))
             {
-                accessSyncList.Add((int)accessToBeAdded[i]);
+                accessSyncList.Add((int) accessToBeAdded[i]);
             }
         }
     }
@@ -90,14 +102,14 @@ public class IDCard : NetworkBehaviour
     {
         for (int i = 0; i < accessToBeRemoved.Count; i++)
         {
-            if (accessSyncList.Contains((int)accessToBeRemoved[i]))
+            if (accessSyncList.Contains((int) accessToBeRemoved[i]))
             {
-                accessSyncList.Remove((int)accessToBeRemoved[i]);
+                accessSyncList.Remove((int) accessToBeRemoved[i]);
             }
         }
     }
 
-    public void SyncAccess(SyncListInt.Operation op, int index)
+    public void SyncAccess(SyncList<int>.Operation op, int index)
     {
         //Do anything special when the synclist changes on the client
     }
@@ -130,17 +142,20 @@ public class IDCard : NetworkBehaviour
         }
     }
 
-	public void OnExamine()
-	{
-		string message = "";
+    public void OnExamine()
+    {
+        string message = "";
 
-		if (MiningPoints > 0) {
-			message = "There's " + MiningPoints + " mining equipment redemption points loaded onto this card.";
-		}
-		else {
-			message = "This is " + RegisteredName + "'s ID card\nThey are the " + GetJobType.ToString() + " of the station!";
-		}
+        if (MiningPoints > 0)
+        {
+            message = "There's " + MiningPoints + " mining equipment redemption points loaded onto this card.";
+        }
+        else
+        {
+            message = "This is " + RegisteredName + "'s ID card\nThey are the " + GetJobType +
+                      " of the station!";
+        }
 
-		UI.UIManager.Chat.AddChatEvent(new ChatEvent(message, ChatChannel.Examine));
-	}
+        UIManager.Chat.AddChatEvent(new ChatEvent(message, ChatChannel.Examine));
+    }
 }

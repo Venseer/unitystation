@@ -1,26 +1,30 @@
 ﻿using Sprites;
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using UI;
 using UnityEngine;
-using UnityEngine.Networking;
 
 namespace PlayGroup
 {
     public enum SpriteType
     {
-        Other, RightHand, LeftHand
+        Other,
+        RightHand,
+        LeftHand
     }
 
     [RequireComponent(typeof(SpriteRenderer))]
     public class ClothingItem : MonoBehaviour
     {
+        private Vector2 currentDirection = Vector2.down;
+        public int reference = -1;
+        private int referenceOffset;
+
+        public SpriteRenderer spriteRenderer;
+        private Sprite[] sprites;
+
+        public string spriteSheetName;
+
         //choice between left or right or other(clothing)
         public SpriteType spriteType;
 
-        public string spriteSheetName;
-        public int reference = -1;
         public PlayerScript thisPlayerScript;
 
         public int Reference
@@ -30,10 +34,7 @@ namespace PlayGroup
                 reference = value;
                 SetSprite();
             }
-            get
-            {
-                return reference;
-            }
+            get { return reference; }
         }
 
         public Vector2 Direction
@@ -43,18 +44,10 @@ namespace PlayGroup
                 currentDirection = value;
                 UpdateReferenceOffset();
             }
-            get
-            {
-                return currentDirection;
-            }
+            get { return currentDirection; }
         }
 
-        public SpriteRenderer spriteRenderer;
-        private Sprite[] sprites;
-        private int referenceOffset = 0;
-        private Vector2 currentDirection = Vector2.down;
-
-        void Start()
+        private void Start()
         {
             sprites = SpriteManager.PlayerSprites[spriteSheetName];
             UpdateSprite();
@@ -65,9 +58,8 @@ namespace PlayGroup
             Reference = -1;
         }
 
-        void SetSprite()
+        private void SetSprite()
         {
-
             if (reference == -1)
             {
                 UpdateSprite();
@@ -81,7 +73,7 @@ namespace PlayGroup
             else
             {
                 string networkRef = Reference.ToString();
-                int code = (int)Char.GetNumericValue(networkRef[0]);
+                int code = (int) char.GetNumericValue(networkRef[0]);
                 networkRef = networkRef.Remove(0, 1);
                 int _reference = int.Parse(networkRef);
                 switch (code)
@@ -114,15 +106,22 @@ namespace PlayGroup
 
         private void UpdateReferenceOffset()
         {
-
             if (currentDirection == Vector2.down)
+            {
                 referenceOffset = 0;
+            }
             if (currentDirection == Vector2.up)
+            {
                 referenceOffset = 1;
+            }
             if (currentDirection == Vector2.right)
+            {
                 referenceOffset = 2;
+            }
             if (currentDirection == Vector2.left)
+            {
                 referenceOffset = 3;
+            }
 
             UpdateSprite();
         }
@@ -132,9 +131,12 @@ namespace PlayGroup
             if (spriteRenderer != null)
             {
                 if (reference >= 0)
-                { //If reference -1 then clear the sprite
+                {
+                    //If reference -1 then clear the sprite
                     if (sprites != null)
+                    {
                         spriteRenderer.sprite = sprites[reference + referenceOffset];
+                    }
                 }
                 else
                 {

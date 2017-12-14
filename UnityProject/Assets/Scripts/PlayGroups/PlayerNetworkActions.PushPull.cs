@@ -1,13 +1,11 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using PlayGroup;
 using UnityEngine;
 using UnityEngine.Networking;
-using PlayGroup;
 
 public partial class PlayerNetworkActions : NetworkBehaviour
 {
-    [HideInInspector]
-    public bool isPulling = false;
+    [HideInInspector] public bool isPulling;
+
     [Command]
     public void CmdPullObject(GameObject obj)
     {
@@ -30,7 +28,6 @@ public partial class PlayerNetworkActions : NetworkBehaviour
                 PlayerNetworkActions otherPNA = obj.GetComponent<PlayerNetworkActions>();
                 otherPNA.CmdStopOtherPulling(playerS.pullingObject);
             }
-
         }
         //Other player is pulling object, send stop on that player
         if (pulled.pulledBy != null)
@@ -40,7 +37,6 @@ public partial class PlayerNetworkActions : NetworkBehaviour
                 pulled.GetComponent<PlayerNetworkActions>().CmdStopPulling(obj);
             }
         }
-
 
 
         if (pulled != null)
@@ -66,7 +62,9 @@ public partial class PlayerNetworkActions : NetworkBehaviour
     public void CmdStopPulling(GameObject obj)
     {
         if (!isPulling)
+        {
             return;
+        }
 
         isPulling = false;
         PushPull pulled = obj.GetComponent<PushPull>();
@@ -84,7 +82,7 @@ public partial class PlayerNetworkActions : NetworkBehaviour
     [Command]
     public void CmdTryPush(GameObject obj, Vector3 pos)
     {
-        var pushed = obj.GetComponent<PushPull>();
+        PushPull pushed = obj.GetComponent<PushPull>();
         if (pushed != null)
         {
             pushed.serverPos = pos;

@@ -1,13 +1,10 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ShroudTile : MonoBehaviour
 {
-
     public Renderer renderer;
 
-    void OnEnable()
+    private void OnEnable()
     {
         renderer.enabled = true;
     }
@@ -16,5 +13,4 @@ public class ShroudTile : MonoBehaviour
     {
         renderer.enabled = enabled;
     }
-
 }

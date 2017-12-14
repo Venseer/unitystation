@@ -1,7 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-using UnityEngine.Networking;
+﻿using UnityEngine;
 
 namespace Equipment
 {
@@ -45,8 +42,22 @@ namespace Equipment
 
     public class ServerUI
     {
-        public GameObject suit, belt, feet, head, mask,
-        uniform, neck, ear, eyes, hands, id, back, rightHand,
-        leftHand, storage01, storage02, suitStorage;
+        public GameObject suit,
+            belt,
+            feet,
+            head,
+            mask,
+            uniform,
+            neck,
+            ear,
+            eyes,
+            hands,
+            id,
+            back,
+            rightHand,
+            leftHand,
+            storage01,
+            storage02,
+            suitStorage;
     }
 }

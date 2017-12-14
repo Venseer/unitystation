@@ -1,16 +1,19 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using PlayGroup;
 using Sprites;
 using UnityEngine;
 using UnityEngine.Networking;
-using Random = UnityEngine.Random;
 
 namespace PlayGroup
 {
     public class PlayerHealth : HealthBehaviour
     {
+        private readonly float bleedRate = 2f;
+
+        private int bleedVolume;
+
+        //For now a simplified blood system will be here. To be refactored into a separate thing in the future.
+        public int BloodLevel = (int) BloodVolume.NORMAL;
         //Health reporting is being performed on PlayerHealthReporting component. You should use the reporting component
         //to request health data of a particular player from the server. The reporting component also performs UI updates
         //for local players
@@ -20,26 +23,44 @@ namespace PlayGroup
         //public Dictionary<BodyPartType, BodyPartBehaviour> BodyParts = new Dictionary<BodyPartType, BodyPartBehaviour>();
         public List<BodyPartBehaviour> BodyParts = new List<BodyPartBehaviour>();
 
-        //For now a simplified blood system will be here. To be refactored into a separate thing in the future.
-        public int BloodLevel = (int)BloodVolume.NORMAL;
-        private int bleedVolume;
+        private PlayerMove playerMove;
+
+        private PlayerNetworkActions playerNetworkActions;
 
         public bool IsBleeding { get; private set; }
 
-        private float bleedRate = 2f;
+        public override void OnStartClient()
+        {
+            playerNetworkActions = GetComponent<PlayerNetworkActions>();
+            playerMove = GetComponent<PlayerMove>();
 
-        public PlayerNetworkActions playerNetworkActions;
+            PlayerScript playerScript = GetComponent<PlayerScript>();
 
-        public override int ReceiveAndCalculateDamage(string damagedBy, int damage, DamageType damageType, BodyPartType bodyPartAim)
+            if (playerScript.JobType == JobType.NULL)
+            {
+                foreach (Transform t in transform)
+                {
+                    t.gameObject.SetActive(false);
+                }
+
+                ConsciousState = ConsciousState.DEAD;
+                playerMove.allowInput = false;
+            }
+
+            base.OnStartClient();
+        }
+
+        public override int ReceiveAndCalculateDamage(string damagedBy, int damage, DamageType damageType,
+            BodyPartType bodyPartAim)
         {
             base.ReceiveAndCalculateDamage(damagedBy, damage, damageType, bodyPartAim);
 
-            var bodyPart = findBodyPart(bodyPartAim);//randomise a bit here?
+            BodyPartBehaviour bodyPart = findBodyPart(bodyPartAim); //randomise a bit here?
             bodyPart.ReceiveDamage(damageType, damage);
 
             if (isServer)
             {
-                var bloodLoss = (int)(damage * BleedFactor(damageType));
+                int bloodLoss = (int) (damage * BleedFactor(damageType));
                 LoseBlood(bloodLoss);
 
                 // don't start bleeding if limb is in ok condition after it received damage
@@ -70,7 +91,9 @@ namespace PlayGroup
             for (int i = 0; i < BodyParts.Count; i++)
             {
                 if (BodyParts[i].Type == bodyPartAim)
+                {
                     return BodyParts[i];
+                }
             }
             //dm code quotes:
             //"no bodypart, we deal damage with a more general method."
@@ -81,7 +104,9 @@ namespace PlayGroup
         private void AddBloodLoss(int amount)
         {
             if (amount <= 0)
+            {
                 return;
+            }
             bleedVolume += amount;
             TryBleed();
         }
@@ -107,7 +132,8 @@ namespace PlayGroup
         }
 
         //ReduceBloodLoss for bandages and stuff in the future?
-        private void StopBleeding()
+        [Server]
+        public void StopBleeding()
         {
             bleedVolume = 0;
             IsBleeding = false;
@@ -116,7 +142,9 @@ namespace PlayGroup
         private void LoseBlood(int amount)
         {
             if (amount <= 0)
+            {
                 return;
+            }
             //            Debug.LogFormat("Lost blood: {0}->{1}", BloodLevel, BloodLevel - amount);
             BloodLevel -= amount;
             BloodSplatSize scaleOfTragedy;
@@ -133,14 +161,20 @@ namespace PlayGroup
                 scaleOfTragedy = BloodSplatSize.large;
             }
             if (isServer)
+            {
                 EffectsFactory.Instance.BloodSplat(transform.position, scaleOfTragedy);
+            }
 
 
-            if (BloodLevel <= (int)BloodVolume.SURVIVE)
+            if (BloodLevel <= (int) BloodVolume.SURVIVE)
+            {
                 Crit();
+            }
 
             if (BloodLevel <= 0)
+            {
                 Death();
+            }
         }
 
         public override void Death()
@@ -151,7 +185,7 @@ namespace PlayGroup
 
         public void RestoreBodyParts()
         {
-            foreach (var bodyPart in BodyParts)
+            foreach (BodyPartBehaviour bodyPart in BodyParts)
             {
                 bodyPart.RestoreDamage();
             }
@@ -159,7 +193,7 @@ namespace PlayGroup
 
         public void RestoreBlood()
         {
-            BloodLevel = (int)BloodVolume.NORMAL;
+            BloodLevel = (int) BloodVolume.NORMAL;
         }
 
         public static float BleedFactor(DamageType damageType)
@@ -181,33 +215,34 @@ namespace PlayGroup
         {
             if (CustomNetworkManager.Instance._isServer)
             {
-                playerNetworkActions.RpcSpawnGhost();
-
-                PlayerMove pM = GetComponent<PlayerMove>();
-                pM.isGhost = true;
-                pM.allowInput = true;
                 if (LastDamagedBy == gameObject.name)
                 {
-                    playerNetworkActions.CmdSendAlertMessage("<color=red><b>" + gameObject.name + " commited suicide</b></color>",
-                        true); //killfeed
+                    PostToChatMessage.Send(gameObject.name + " commited suicide", ChatChannel.System); //Killfeed
                 }
                 else if (LastDamagedBy.EndsWith(gameObject.name))
-                { // chain reactions
-                    playerNetworkActions.CmdSendAlertMessage("<color=red><b>" + gameObject.name + " screwed himself up with some help (" +
-                    LastDamagedBy
-                    + ")</b></color>",
-                        true); //killfeed
+                {
+                    // chain reactions
+                    PostToChatMessage.Send(
+                        gameObject.name + " screwed himself up with some help (" + LastDamagedBy + ")",
+                        ChatChannel.System); //Killfeed
                 }
                 else
                 {
                     PlayerList.Instance.UpdateKillScore(LastDamagedBy);
-                    playerNetworkActions.CmdSendAlertMessage(
-                        "<color=red><b>" + LastDamagedBy + "</b> has killed <b>" + gameObject.name + "</b></color>", true); //killfeed
+                    PostToChatMessage.Send(LastDamagedBy + " has killed " + gameObject.name,
+                        ChatChannel.System); //Killfeed
                 }
-                playerNetworkActions.ValidateDropItem("leftHand", true);
                 playerNetworkActions.ValidateDropItem("rightHand", true);
+                playerNetworkActions.ValidateDropItem("leftHand", true);
+
                 if (isServer)
+                {
                     EffectsFactory.Instance.BloodSplat(transform.position, BloodSplatSize.large);
+                }
+
+                playerNetworkActions.RpcSpawnGhost();
+                playerMove.isGhost = true;
+                playerMove.allowInput = true;
 
                 //FIXME Remove for next demo
                 playerNetworkActions.RespawnPlayer(10);

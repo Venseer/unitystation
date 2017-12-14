@@ -1,8 +1,6 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System;
 
-// See \code\__DEFINES\jobs.dm
+[Serializable]
 public enum JobType
 {
     NULL,
@@ -40,5 +38,5 @@ public enum JobType
     SCIENTIST,
     SECURITY_OFFICER,
     VIROLOGIST,
-    WARDEN,
+    WARDEN
 }

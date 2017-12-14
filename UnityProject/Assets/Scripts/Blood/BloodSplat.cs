@@ -1,17 +1,13 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
+using Sprites;
 using UnityEngine;
 using UnityEngine.Networking;
-using Sprites;
 
 public class BloodSplat : NetworkBehaviour
 {
-
-    public SpriteRenderer spriteRend;
+    [SyncVar(hook = "SetSprite")] public int bloodSprite;
     private Sprite[] bloodSprites;
-
-    [SyncVar(hook = "SetSprite")]
-    public int bloodSprite;
+    public SpriteRenderer spriteRend;
 
     public override void OnStartClient()
     {
@@ -19,15 +15,16 @@ public class BloodSplat : NetworkBehaviour
         base.OnStartClient();
     }
 
-    IEnumerator WaitForLoad()
+    private IEnumerator WaitForLoad()
     {
         yield return new WaitForSeconds(3f);
         SetSprite(bloodSprite);
     }
 
-    void SetSprite(int spritenum)
+    private void SetSprite(int spritenum)
     {
-        bloodSprite = spritenum; //officially recognized unet problem (feature?), you need to manually update the syncvar int if using with hook
+        bloodSprite =
+            spritenum; //officially recognized unet problem (feature?), you need to manually update the syncvar int if using with hook
         if (bloodSprites == null)
         {
             bloodSprites = SpriteManager.BloodSprites["blood"];
@@ -35,5 +32,4 @@ public class BloodSplat : NetworkBehaviour
         spriteRend.sprite = bloodSprites[spritenum];
         spriteRend.enabled = true;
     }
-
 }

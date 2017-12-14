@@ -1,57 +1,60 @@
 ﻿using System.Collections;
-using UnityEngine;
-using UnityEngine.Networking;
 using PlayGroup;
 using Tilemaps.Scripts.Behaviours.Objects;
+using UnityEngine;
+using UnityEngine.Networking;
 
 /// <summary>
-/// Toggles the active state of the object by gathering all components and setting
-/// their active state. It ignores network components so item can be synced
+///     Toggles the active state of the object by gathering all components and setting
+///     their active state. It ignores network components so item can be synced
 /// </summary>
-public class VisibleBehaviour : ManagedNetworkBehaviour
+public class VisibleBehaviour : NetworkBehaviour
 {
-
-    /// <summary>
-    /// This will also set the enabled state of every component
-    /// </summary>
-    [SyncVar(hook = "UpdateState")]
-    public bool visibleState = true;
-
-    public bool isPlayer = false;
-    public RegisterTile registerTile;
-
     //Ignore these types
     private const string networkId = "NetworkIdentity";
+
     private const string networkT = "NetworkTransform";
     private const string objectBehaviour = "ObjectBehaviour";
     private const string regTile = "RegisterTile";
     private const string inputController = "InputController";
     private const string playerSync = "PlayerSync";
 
-    protected override void Awake()
+    public bool isPlayer;
+    public RegisterTile registerTile;
+
+    /// <summary>
+    ///     This will also set the enabled state of every component
+    /// </summary>
+    [SyncVar(hook = "UpdateState")] public bool visibleState = true;
+
+    protected virtual void Awake()
     {
-        base.Awake();
         registerTile = GetComponent<RegisterTile>();
     }
+
     public override void OnStartClient()
     {
         StartCoroutine(WaitForLoad());
         base.OnStartClient();
         PlayerScript pS = GetComponent<PlayerScript>();
         if (pS != null)
+        {
             isPlayer = true;
+        }
     }
 
-    IEnumerator WaitForLoad()
+    private IEnumerator WaitForLoad()
     {
         yield return new WaitForSeconds(3f);
         UpdateState(visibleState);
     }
 
     //For ObjectBehaviour to handle specific states with the various objects like players
-    public virtual void OnVisibilityChange(bool state) { }
+    public virtual void OnVisibilityChange(bool state)
+    {
+    }
 
-    void UpdateState(bool _aliveState)
+    private void UpdateState(bool _aliveState)
     {
         OnVisibilityChange(_aliveState);
 
@@ -86,7 +89,9 @@ public class VisibleBehaviour : ManagedNetworkBehaviour
             {
                 EditModeControl eC = gameObject.GetComponent<EditModeControl>();
                 if (eC != null)
+                {
                     eC.Snap();
+                }
 
                 registerTile.UpdatePosition();
             }

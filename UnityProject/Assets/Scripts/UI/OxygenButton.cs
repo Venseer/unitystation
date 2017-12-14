@@ -1,16 +1,15 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-
 namespace UI
 {
     public class OxygenButton : MonoBehaviour
     {
-
-        public Sprite[] stateSprites;
         private Image image;
+        public Sprite[] stateSprites;
+
         // Use this for initialization
-        void Start()
+        private void Start()
         {
             image = GetComponent<Image>();
             UIManager.IsOxygen = false;
@@ -18,14 +17,11 @@ namespace UI
 
         public void OxygenSelect()
         {
-
             SoundManager.Play("Click01");
             if (!UIManager.IsOxygen)
             {
-
                 UIManager.IsOxygen = true;
                 image.sprite = stateSprites[1];
-
             }
             else
             {

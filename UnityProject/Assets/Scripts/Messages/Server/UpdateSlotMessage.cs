@@ -2,15 +2,16 @@
 using UI;
 using UnityEngine;
 using UnityEngine.Networking;
+
 /// <summary>
-/// Tells client to update certain slot (place an object)
+///     Tells client to update certain slot (place an object)
 /// </summary>
 public class UpdateSlotMessage : ServerMessage<UpdateSlotMessage>
 {
-    public NetworkInstanceId Recipient;
-    public string Slot;
     public bool ForceRefresh;
     public NetworkInstanceId ObjectForSlot;
+    public NetworkInstanceId Recipient;
+    public string Slot;
 
     public override IEnumerator Process()
     {
@@ -39,18 +40,21 @@ public class UpdateSlotMessage : ServerMessage<UpdateSlotMessage>
     /// <param name="recipient">Client GO</param>
     /// <param name="slot"></param>
     /// <param name="objectForSlot">Pass null to clear slot</param>
-    /// <param name="forced">Used for client simulation, use false if client's slot is already updated by prediction
-    /// (to avoid updating it twice)
+    /// <param name="forced">
+    ///     Used for client simulation, use false if client's slot is already updated by prediction
+    ///     (to avoid updating it twice)
     /// </param>
     /// <returns></returns>
-    public static UpdateSlotMessage Send(GameObject recipient, string slot, GameObject objectForSlot = null, bool forced = true)
+    public static UpdateSlotMessage Send(GameObject recipient, string slot, GameObject objectForSlot = null,
+        bool forced = true)
     {
-        var msg = new UpdateSlotMessage
+        UpdateSlotMessage msg = new UpdateSlotMessage
         {
             Recipient = recipient.GetComponent<NetworkIdentity>().netId, //?
             Slot = slot,
-            ObjectForSlot = (objectForSlot != null) ?
-                objectForSlot.GetComponent<NetworkIdentity>().netId : NetworkInstanceId.Invalid,
+            ObjectForSlot = objectForSlot != null
+                ? objectForSlot.GetComponent<NetworkIdentity>().netId
+                : NetworkInstanceId.Invalid,
             ForceRefresh = forced
         };
         msg.SendTo(recipient);
@@ -60,6 +64,6 @@ public class UpdateSlotMessage : ServerMessage<UpdateSlotMessage>
     public override string ToString()
     {
         return string.Format("[UpdateSlotMessage Recipient={0} Method={2} Parameter={3} Type={1} Forced={4}]",
-                                                        Recipient, MessageType, Slot, ObjectForSlot, ForceRefresh);
+            Recipient, MessageType, Slot, ObjectForSlot, ForceRefresh);
     }
 }

@@ -1,14 +1,15 @@
 ﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.Networking;
+
 /// <summary>
-/// Message that tells clent to run some method
+///     Message that tells clent to run some method
 /// </summary>
 public class RunMethodMessage : ServerMessage<RunMethodMessage>
 {
-    public NetworkInstanceId Recipient;
     public string Method;
     public NetworkInstanceId Parameter;
+    public NetworkInstanceId Recipient;
 
     public override IEnumerator Process()
     {
@@ -22,12 +23,13 @@ public class RunMethodMessage : ServerMessage<RunMethodMessage>
 
     public static RunMethodMessage Send(GameObject recipient, string method, GameObject parameter = null)
     {
-        var msg = new RunMethodMessage
+        RunMethodMessage msg = new RunMethodMessage
         {
             Recipient = recipient.GetComponent<NetworkIdentity>().netId, //?
             Method = method,
-            Parameter = (parameter != null) ?
-                parameter.GetComponent<NetworkIdentity>().netId : NetworkInstanceId.Invalid
+            Parameter = parameter != null
+                ? parameter.GetComponent<NetworkIdentity>().netId
+                : NetworkInstanceId.Invalid
         };
         msg.SendTo(recipient);
         return msg;
@@ -36,6 +38,6 @@ public class RunMethodMessage : ServerMessage<RunMethodMessage>
     public override string ToString()
     {
         return string.Format("[RunMethodMessage Recipient={0} Method={2} Parameter={3} Type={1}]",
-                                                        Recipient, MessageType, Method, Parameter);
+            Recipient, MessageType, Method, Parameter);
     }
 }
