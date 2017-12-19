@@ -1,4 +1,5 @@
 ﻿using System.Collections;
+using Objects;
 using PlayGroup;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -6,6 +7,7 @@ using Weapons;
 
 public class WeaponNetworkActions : ManagedNetworkBehaviour
 {
+    private readonly float speed = 7f;
     private bool allowAttack = true;
 
     //muzzle flash
@@ -25,7 +27,6 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
     private PlayerMove playerMove;
     private PlayerScript playerScript;
     private SoundNetworkActions soundNetworkActions;
-    private readonly float speed = 7f;
     private GameObject spritesObj;
 
     private void Start()
@@ -139,24 +140,49 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
     [Command] //TODO fixme ghetto proof-of-concept
     public void CmdKnifeAttackMob(GameObject npcObj, GameObject weapon, Vector2 stabDirection, BodyPartType damageZone)
     {
-        if (!playerMove.allowInput || !allowAttack || playerMove.isGhost)
-        {
-            return;
-        }
-
-        if (npcObj != gameObject)
-        {
-            RpcMeleAttackLerp(stabDirection, weapon);
-        }
         HealthBehaviour healthBehaviour = npcObj.GetComponent<HealthBehaviour>();
-        healthBehaviour
-            .ApplyDamage(gameObject.name, 20, DamageType.BRUTE, damageZone);
+        if (healthBehaviour.IsDead == false)
+        {
+            if (!playerMove.allowInput || !allowAttack || playerMove.isGhost)
+            {
+                return;
+            }
 
-        //this crap will remain here until moved to netmessages
-        healthBehaviour.RpcApplyDamage(gameObject.name, 20, DamageType.BRUTE, damageZone);
+            if (npcObj != gameObject)
+            {
+                RpcMeleAttackLerp(stabDirection, weapon);
+            }
 
-        soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
-        StartCoroutine(AttackCoolDown());
+            healthBehaviour
+                .ApplyDamage(gameObject.name, 20, DamageType.BRUTE, damageZone);
+
+            //this crap will remain here until moved to netmessages
+            healthBehaviour.RpcApplyDamage(gameObject.name, 20, DamageType.BRUTE, damageZone);
+
+            soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
+            StartCoroutine(AttackCoolDown());
+        }
+        else
+        {
+            if (!playerMove.allowInput || playerMove.isGhost)
+            {
+                return;
+            }
+            if (npcObj.GetComponent<SimpleAnimal>())
+            {
+                SimpleAnimal attackTarget = npcObj.GetComponent<SimpleAnimal>(); 
+                RpcMeleAttackLerp(stabDirection, weapon);
+                attackTarget.Harvest();
+                soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
+            }
+            else
+            {
+                PlayerHealth attackTarget = npcObj.GetComponent<PlayerHealth>(); 
+                RpcMeleAttackLerp(stabDirection, weapon);
+                attackTarget.Harvest();
+                soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
+            }
+        }
     }
 
     private IEnumerator AttackCoolDown(float seconds = 0.5f)
@@ -167,19 +193,7 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
     }
 
     // Harvest should only be used for animals like pete and cows
-    [Command]
-    public void CmdKnifeHarvestMob(GameObject npcObj, GameObject weapon, Vector2 stabDirection)
-    {
-        if (!playerMove.allowInput || playerMove.isGhost)
-        {
-            return;
-        }
 
-        SimpleAnimal attackTarget = npcObj.GetComponent<SimpleAnimal>();
-        RpcMeleAttackLerp(stabDirection, weapon);
-        attackTarget.Harvest();
-        soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
-    }
 
     [ClientRpc]
     private void RpcMeleAttackLerp(Vector2 stabDir, GameObject weapon)

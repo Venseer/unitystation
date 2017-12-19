@@ -149,15 +149,21 @@ namespace UI
         public bool CheckItemFit(GameObject item)
         {
             ItemAttributes attributes = item.GetComponent<ItemAttributes>();
+           
+            if(!allowAllItems) 
+            {
+                if(!allowedItemTypes.Contains(attributes.type)) 
+                 {
+                 return false;
+                  } 
+                //fixme: following code prevents player from holding/wearing stuff that is wearable in /tg/ 
+            }
+            else if(maxItemSize != ItemSize.Large && (maxItemSize != ItemSize.Medium || attributes.size == ItemSize.Large) && maxItemSize != attributes.size) 
+            {
+            Debug.Log("Item is too big!");
+            return false;
+            }
             return allowAllItems || allowedItemTypes.Contains(attributes.type);
-            //	        if(!allowAllItems) {
-            //		        if(!allowedItemTypes.Contains(attributes.type)) {
-            //			        return false;
-            //		        } //fixme: following code prevents player from holding/wearing stuff that is wearable in /tg/ 
-            //	        }/*else if(maxItemSize != ItemSize.Large && (maxItemSize != ItemSize.Medium || attributes.size == ItemSize.Large) && maxItemSize != attributes.size) {
-            //                Debug.Log("Item is too big!");
-            //                return false;
-            //            }*/
         }
     }
 }

@@ -16,18 +16,18 @@ using Random = UnityEngine.Random;
 
 public partial class PlayerNetworkActions : NetworkBehaviour
 {
+    private readonly string[] slotNames =
+    {
+        "suit", "belt", "feet", "head", "mask", "uniform", "neck", "ear", "eyes", "hands",
+        "id", "back", "rightHand", "leftHand", "storage01", "storage02", "suitStorage"
+    };
+
     private ChatIcon chatIcon;
 
     private Equipment.Equipment equipment;
     private PlayerMove playerMove;
     private PlayerScript playerScript;
     private PlayerSprites playerSprites;
-
-    private readonly string[] slotNames =
-    {
-        "suit", "belt", "feet", "head", "mask", "uniform", "neck", "ear", "eyes", "hands",
-        "id", "back", "rightHand", "leftHand", "storage01", "storage02", "suitStorage"
-    };
 
     private SoundNetworkActions soundNetworkActions;
 
@@ -244,8 +244,8 @@ public partial class PlayerNetworkActions : NetworkBehaviour
         EquipmentPool.DisposeOfObject(gameObject, obj);
     }
 
-    [Server]
-    public void PlaceItem(string slotName, Vector3 pos, GameObject newParent)
+    [Command]
+    public void CmdPlaceItem(string slotName, Vector3 pos, GameObject newParent)
     {
         if (!SlotNotEmpty(slotName))
         {
@@ -436,6 +436,7 @@ public partial class PlayerNetworkActions : NetworkBehaviour
         if (PlayerManager.LocalPlayer == gameObject)
         {
             SoundManager.Stop("Critstate");
+            UIManager.PlayerHealthUI.heartMonitor.overlayCrits.SetState(OverlayState.death);
             Camera2DFollow.followControl.target = playerScript.ghost.transform;
             FieldOfView fovScript = GetComponent<FieldOfView>();
             if (fovScript != null)
@@ -500,9 +501,9 @@ public partial class PlayerNetworkActions : NetworkBehaviour
     }
 
     [Command]
-    public void CmdTryOpenDoor(GameObject door)
+    public void CmdTryOpenDoor(GameObject door, GameObject originator)
     {
-        door.GetComponent<DoorController>().CmdTryOpen(gameObject);
+        door.GetComponent<DoorController>().CmdTryOpen(originator);
     }
 
     [Command]
@@ -530,8 +531,12 @@ public partial class PlayerNetworkActions : NetworkBehaviour
         FoodBehaviour baseFood = food.GetComponent<FoodBehaviour>();
         soundNetworkActions.CmdPlaySoundAtPlayerPos("EatFood");
         PlayerHealth playerHealth = GetComponent<PlayerHealth>();
-
+        
+        //FIXME: remove health and blood changes after TDM
+        //and use this Cmd for healing hunger and applying 
+        //food related attributes instead:
         playerHealth.AddHealth(baseFood.healAmount);
+        playerHealth.BloodLevel += baseFood.healAmount;
         playerHealth.StopBleeding();
 
         PoolManager.Instance.PoolNetworkDestroy(food);
