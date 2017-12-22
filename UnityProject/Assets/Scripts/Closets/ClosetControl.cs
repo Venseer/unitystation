@@ -44,13 +44,13 @@ namespace Cupboards
 		public override void OnStartServer()
 		{
 			StartCoroutine(WaitForServerReg());
-			IsClosed = true;
 			base.OnStartServer();
 		}
 
 		private IEnumerator WaitForServerReg()
 		{
 			yield return new WaitForSeconds(1f);
+			IsClosed = true;
 			SetItems(!IsClosed);
 		}
 
@@ -226,6 +226,13 @@ namespace Cupboards
 					player.transform.position = transform.position;
 				}
 				player.visibleState = on;
+
+				if (!on)
+				{
+					//Make sure a ClosetPlayerHandler is created on the client to monitor 
+					//the players input inside the storage. The handler also controls the camera follow targets:
+					ClosetHandlerMessage.Send(player.gameObject, this.gameObject);
+				}
 			}
 		}
 	}

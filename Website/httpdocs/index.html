@@ -3,31 +3,34 @@
 
 <head>
   <meta charset="utf-8">
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="">
+  <meta name="description" content="Shamelessly porting Spacestation 13 to Unity">
   <meta name="author" content="">
-  <link rel="shortcut icon" href="assets/ico/favicon.ico">
+  <link rel="shortcut icon" type="image/png" href="assets/img/ss13_16.png" sizes="16x16" alt="Favicon 16pix">
+  <link rel="shortcut icon" type="image/png" href="assets/img/ss13_32.png" sizes="32x32" alt="Favicon 32pix">
+  <link rel="shortcut icon" type="image/png" href="assets/img/ss13_64.png" sizes="64x64" alt="Favicon 64pix">
+  <meta property="og:title" content="UnityStation" />
+  <meta property="og:type" content="Website" />
+  <meta property="og:url" content="http://unitystation.org/" />
+  <meta property="og:image" content="http://unitystation.org/assets/img/ian.jpg" />
 
   <title>UnityStation</title>
 
   <!-- Bootstrap core CSS -->
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
+  <link rel="stylesheet" href="assets/css/bootstrap.min.css" integrity="sha384-PsH8R72JQ3SOdhVi3uxftmaW6Vc51MKb0q5P2rRUpPvrszuE4W1povHYgTpBfshb" crossorigin="anonymous">
 
   <!-- Custom styles for this template -->
   <link href="assets/css/style.css" rel="stylesheet">
 
   <!-- Font Awesome Icons -->
-  <link href="https://use.fontawesome.com/releases/v5.0.1/css/all.css" rel="stylesheet">
-
-
-  <link rel="icon" type="image/png" href="assets/img/ss13_32.png" />
+  <link href="assets/css/fa-all.css" rel="stylesheet">
+  
 </head>
 
 <body>
   <!-- START NAV -->
   <nav class="navbar sticky-top navbar-custom-dark navbar-expand-lg">
-    <a class="navbar-brand" href="#"><img class="ss13-brand-image" src="assets/img/ss13_64.png">Unity Station</a>
+    <a class="navbar-brand" href="#"><img class="ss13-brand-image" src="assets/img/ss13_64.png" alt="Site Logo">Unity Station</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -80,18 +83,28 @@
   <!-- END NAV -->
 
   <!-- START HERO IMAGE / EMBEDDED VIDEO -->
-  <div class="headerImage">
+  <div class="headerImage flex-center">
+    <div class="videoWrapper" style="display:none">
+      <iframe sandbox id="embeddedVideo" width="420" height="315">
+      </iframe>
+    </div>
+    <div class="closePlayer" style="display: none;" onclick="closeVideo()">
+      Close Player
+    </div>
+    <div class="playButton" onclick="playVideo()">
+      <i class="far fa-play-circle"></i>
+    </div>
   </div>
+
   <!-- END HERO IMAGE / EMBEDDED VIDEO -->
 
   <!-- START ABOUT-->
-  <div class="leftBar">
-  </div>
+
 
   <!-- our project container -->
   <div class="container" id="about">
     <div class="flex-center">
-      <img class="about-image" src="assets/img/about.png">
+      <img class="about-image" src="assets/img/about.png" alt="About Text">
     </div>
     <h2 class="sr-only">About</h2>
     <h3 class="ourProject text-center">Our Project, Our Unity</h3>
@@ -103,7 +116,7 @@
         </p>
 
         <p>
-          It has a fully working net framework, a dedicated server, map editor, inventory, basic interactions, all the items and clothes from the TG branch, weapons, damage and over 25 contributors who are eager to see this thing become a reality. Best of all it
+          It has a fully working net framework, a dedicated server, map editor, inventory, basic interactions, all the items and clothes from the TG branch, weapons, and damage. The project has a growing and dedicated community of contributors who are eager to see this thing become a reality. Best of all it
           is all open source and <a href="https://github.com/unitystation/unitystation">available on GitHub</a>.
         </p>
       </div>
@@ -129,8 +142,8 @@
         <div class="col-md-12 text-center margin-top-30">
           <h4 class="margin-bottom-1rem">Support this open source project today and <a href="https://www.patreon.com/unitystation">Become a Patron</a>.</h4>
           <a id="patron-button" href="https://www.patreon.com/unitystation">
-              <img id="patron-button-white" src="assets/img/become_a_patron_button-white.png">
-              <img id="patron-button" src="assets/img/become_a_patron_button.png" style="display:none;">
+              <img id="patron-button-white" src="assets/img/become_a_patron_button-white.png" alt="Become a Patron-white">
+              <img id="patron-button-color" src="assets/img/become_a_patron_button.png" style="display:none;" alt="Become a Patron">
             </a>
         </div>
       </div>
@@ -142,13 +155,13 @@
   <div class="download-container" id="download">
     <div class="honk" id="honk">
     </div>
-    <audio id="audio" src="assets/audio/Clown.wmv.mp3"></audio>
+    <audio preload="none" id="audio" src="assets/audio/Clown.aac"></audio>
     <button class="audio-button" onclick="toggleAudio()" type="button">
       <i id="audio-button-icon" class="fas fa-volume-off"></i>
     </button>
     <div class="container download-container-inner">
       <div class="flex-center">
-        <img class="download-image" src="assets/img/download.png">
+        <img class="download-image" src="assets/img/download.png" alt="Download text">
       </div>
       <h2 class="sr-only">Download</h2>
       <div class="version-container">
@@ -156,12 +169,12 @@
         <p>July 15, 2017</p>
       </div>
       <div class="row button-container">
-        <div class="col-md-4 flex-center">
+        <div class="col-md-4 flex-center margin-bottom-1rem">
           <a class="btn btn-lg btn-primary" href="https://github.com/unitystation/unitystation/releases/download/0.1.3/windows.zip" role="button">
             <i class="fab fa-windows"></i> Windows
           </a>
         </div>
-        <div class="col-md-4 flex-center">
+        <div class="col-md-4 flex-center margin-bottom-1rem">
           <a class="btn btn-lg btn-primary" href="https://github.com/unitystation/unitystation/releases/download/0.1.3/osx.zip" role="button">
             <i class="fab fa-apple"></i> OSX
           </a>
@@ -177,38 +190,61 @@
   <!-- END DOWNLOAD -->
 
   <!-- START CONTACT -->
-  <div class="container">
-    <div class="row">
-      <div class="col-md-12">
-        <section id="contact">
-          <h2>Contact</h2>
-        </section>
+  <div class="flex-center" id="contact">
+    <img class="contact-image" src="assets/img/contact.png" alt="Contact text">
+  </div>
+  <h2 class="sr-only">Contact</h2>
+  <div class="container-narrow margin-top-30 margin-bottom-30" id="emailForm">
+      <form id="contactForm" action="https://formspree.io/info@unitystation.org" method="POST">
+      <div class="form-group">
+        <label for="inputEmail">Email address</label>
+        <input type="email" name="_replyto" class="form-control orange-form-box" id="inputEmail" aria-describedby="emailHelp" placeholder="Enter email">
       </div>
-    </div>
+      <div class="form-group">
+        <label for="inputName">Name</label>
+        <input type="text" name="name" class="form-control orange-form-box" id="inputName" placeholder="Name">
+      </div>
+      <div class="form-group">
+        <label for="textArea">Comments</label>
+        <textarea name="message"  class="form-control orange-form-box" id="textArea" rows="3" placeholder="Leave a comment..."></textarea>
+      </div>
+        <input type="hidden" name="_format" value="plain" />
+        <input type="hidden" name="_next" value="https://unitystation.org" />
+      <button type="submit" class="btn btn-primary" id="submitContactButton" onclick="">Submit</button>
+    </form>
+  </div>
+
+  <div class="emailConfirmBox margin-top-30 margin-bottom-30" style="display:none;">
+    <p class="flex-center" style="font-size:2rem;">Thank you! <br /></p>
+    <p class="flex-center" style="font-size:1.5rem;">Your email has been sent.</p>
   </div>
   <!-- END CONTACT -->
 
-  <div id="footerwrap">
-    <div class="container">
-      <div class="row centered">
-        <div class="col-lg-4">
-          <img src="assets/img/built-with-resentment.svg">
-        </div>
 
-        <div class="col-lg-4">
+  <!-- START FOOTER -->
+  <div class="footer-container">
+    <div class="container">
+      <div class="flex-center footerBrand">
+        <a class="navbar-brand" href="#"><img class="ss13-brand-image" src="assets/img/ss13_64.png" alt="Footer Logo">Unity Station</a>
+      </div>
+      <div class="row centered footerBottomRow">
+        <div class="col-lg-4 flex-center">
+          <img  src="assets/img/built-with-resentment.svg" alt="Build with Resentment">
+        </div>
+        <div class="col-lg-4 flex-center">
           <p>Our Project, Our Unity</p>
         </div>
-        <div class="col-lg-4">
-          <img src="assets/img/contains-technical-debt.svg">
+        <div class="col-lg-4 flex-center">
+          <img src="assets/img/contains-technical-debt.svg" alt="Contains Technical Dept">
         </div>
       </div>
     </div>
   </div>
 
   <!-- Bootstrap core JavaScript -->
-  <script src="https://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.3/umd/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
-  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0-beta.2/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
+  <script src="assets/js/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+  <script src="assets/js/popper.min.js" integrity="sha384-vFJXuSJphROIrBnz7yo7oB41mKfc8JzQZiCq4NCceLEaO4IHwicKwpJf9c9IpFgh" crossorigin="anonymous"></script>
+  <script src="assets/js/bootstrap.min.js" integrity="sha384-alpBpkh1PFOepccYVYDB4do5UnbKysX5WZXm3XxPqe5iKTfUKjNkCk9SaVuEZflJ" crossorigin="anonymous"></script>
 
   <!-- Changes Patreon button on hover -->
   <script tpye="text/JavaScript">
@@ -250,9 +286,7 @@
 
     // animate the honk every 15 seconds
     $(document).ready(function(e) {
-      window.setInterval(function(){
-        animateHonk()
-      }, 15000);
+      animateHonk()
     });
 
     function animateHonk(){
@@ -270,14 +304,44 @@
       // animate the clown across the screen with the JQuery animate() function.
       // the first parameter are the css properties to animateHonk
       // the second parameter is the time it takes in miliseconds for the animation to background
-      // the third parameter is what to do once the animation is complete.
+      // the third parameter sets the animation to linear so it doesn't have awkward easing
+      // the fourth parameter is what to do once the animation is complete.
       $elem.animate({
         left: width
       }, 10000, "linear", function() {
         // resent the clown's x position
         $elem.css("left", "-100px");
+        // re-run this function after 5 seconds
+        setTimeout(function(){ animateHonk() }, 8000);
       });
     }
+  </script>
+
+  <script type="text/JavaScript">
+    var headerImage = $('.headerImage');
+    var embeddedVideo = $('#embeddedVideo');
+    var videoWrapper = $('.videoWrapper');
+    var playButton = $('.playButton');
+    var closePlayer = $('.closePlayer');
+
+    function playVideo(){
+      embeddedVideo.attr("src", "https://www.youtube.com/embed/YKVmXn-Gv0M?autoplay=1");
+      videoWrapper.css("display","inline");
+      headerImage.css("background-image","none");
+      headerImage.css("background-color","black");
+      playButton.css("display","none");
+      closePlayer.css("display","inline");
+    }
+
+    function closeVideo(){
+      embeddedVideo.attr("src", "");
+      videoWrapper.css("display","none");
+      headerImage.removeAttr("style");
+      playButton.css("display","inline");
+      closePlayer.css("display","none");
+    }
+
+
   </script>
 </body>
 
