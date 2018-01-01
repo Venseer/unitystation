@@ -109,7 +109,22 @@ namespace UI
 			return IsFull && UIManager.SendUpdateAllowed(Item);
 		}
 
-
+		/// <summary>
+		///     clientside simulation of placement
+		/// </summary>
+		public bool PlaceItem(Vector3 pos)
+		{
+			var item = Clear();
+			if (!item)
+			{
+				return false;
+			}
+			var itemTransform = item.GetComponent<CustomNetTransform>();
+			itemTransform.AppearAtPosition(pos);
+			var itemAttributes = item.GetComponent<ItemAttributes>();
+			Debug.LogFormat("Placing item {0}/{1} from {2} to {3}", item.name, itemAttributes ? itemAttributes.itemName : "(no iAttr)", eventName, pos);
+			return true;
+		}
 
 		public void Reset()
 		{
@@ -130,7 +145,8 @@ namespace UI
 				}
 				//fixme: following code prevents player from holding/wearing stuff that is wearable in /tg/ 
 			}
-			else if (maxItemSize != ItemSize.Large && (maxItemSize != ItemSize.Medium || attributes.size == ItemSize.Large) && maxItemSize != attributes.size)
+			else if (maxItemSize != ItemSize.Large && (maxItemSize != ItemSize.Medium || attributes.size == ItemSize.Large) &&
+			         maxItemSize != attributes.size)
 			{
 				Debug.Log("Item is too big!");
 				return false;

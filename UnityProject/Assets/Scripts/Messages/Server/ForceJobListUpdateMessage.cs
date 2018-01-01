@@ -1,5 +1,4 @@
 ﻿using System.Collections;
-using NUnit.Framework;
 using PlayGroup;
 using UI;
 using UnityEngine;
@@ -8,35 +7,35 @@ using UnityEngine.Networking;
 /// <summary>
 ///     Message that tells client to update thier job lists
 /// </summary>
-public class ForceJobListUpdateMessage : ServerMessage<ForceJobListUpdateMessage>
+public class ForceJobListUpdateMessage : ServerMessage
 {
-    public NetworkInstanceId Subject;
-    public static short MessageType = (short) MessageTypes.ForceJobListUpdateMessage;
-    
-    public override IEnumerator Process()
-    {
-        yield return WaitFor(Subject);
+	public static short MessageType = (short) MessageTypes.ForceJobListUpdateMessage;
+	public NetworkInstanceId Subject;
 
-        GUI_PlayerJobs playerJobs = UIManager.Instance.displayControl.jobSelectWindow.GetComponent<GUI_PlayerJobs>();
-        playerJobs.isUpToDate = false;
-        
-        if (PlayerManager.LocalPlayerScript.JobType == JobType.NULL)
-        {
-            //Reset required if player played in previous round
-            playerJobs.hasPickedAJob = false;
-            Debug.Log("has picked job reset");
-        }
-    }
+	public override IEnumerator Process()
+	{
+		yield return WaitFor(Subject);
 
-    public static ForceJobListUpdateMessage Send()
-    {
-        ForceJobListUpdateMessage msg = new ForceJobListUpdateMessage{};
-        msg.SendToAll();
-        return msg;
-    }
+		GUI_PlayerJobs playerJobs = UIManager.Instance.displayControl.jobSelectWindow.GetComponent<GUI_PlayerJobs>();
+		playerJobs.isUpToDate = false;
 
-    public override string ToString()
-    {
-        return string.Format("[ForceJobListUpdateMessage Subject={0} Type={1}]", Subject, MessageType);
-    }
+		if (PlayerManager.LocalPlayerScript.JobType == JobType.NULL)
+		{
+			//Reset required if player played in previous round
+			playerJobs.hasPickedAJob = false;
+			Debug.Log("has picked job reset");
+		}
+	}
+
+	public static ForceJobListUpdateMessage Send()
+	{
+		ForceJobListUpdateMessage msg = new ForceJobListUpdateMessage();
+		msg.SendToAll();
+		return msg;
+	}
+
+	public override string ToString()
+	{
+		return string.Format("[ForceJobListUpdateMessage Subject={0} Type={1}]", Subject, MessageType);
+	}
 }

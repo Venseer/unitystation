@@ -1,5 +1,5 @@
 ﻿using System.Collections.Generic;
-using Tilemaps.Scripts.Behaviours.Objects;
+using Tilemaps.Behaviours.Objects;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -14,8 +14,8 @@ namespace Equipment
 
 		public void AddGameObject(GameObject obj)
 		{
-			obj.transform.position = transform.position;
-			obj.transform.parent = transform;
+			var objTransform = obj.GetComponent<CustomNetTransform>();
+			objTransform.DisappearFromWorldServer();
 
 			NetworkIdentity id = obj.GetComponent<NetworkIdentity>();
 			ItemAttributes att = obj.GetComponent<ItemAttributes>();
@@ -58,8 +58,9 @@ namespace Equipment
 
 		private static void DropNow(GameObject gObj, Vector3 dropPos)
 		{
-			gObj.transform.parent = GameObject.FindGameObjectWithTag("SpawnParent").transform;
-			gObj.transform.position = dropPos;
+			var objTransform = gObj.GetComponent<CustomNetTransform>();
+			objTransform.ForceDrop(dropPos); //For demo purposes
+			//Normally you would do objTransform.AppearAtPositionServer(dropPos); 
 		}
 	}
 }

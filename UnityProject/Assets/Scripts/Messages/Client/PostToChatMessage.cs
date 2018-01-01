@@ -6,12 +6,12 @@ using UnityEngine.Networking;
 /// <summary>
 ///     Attempts to send a chat message to the server
 /// </summary>
-public class PostToChatMessage : ClientMessage<PostToChatMessage>
+public class PostToChatMessage : ClientMessage
 {
+	public static short MessageType = (short) MessageTypes.PostToChatMessage;
 	public ChatChannel Channels;
 	public string ChatMessageText;
-	public static short MessageType = (short) MessageTypes.PostToChatMessage;
-	
+
 	public override IEnumerator Process()
 	{
 		yield return WaitFor(SentBy);
@@ -38,17 +38,17 @@ public class PostToChatMessage : ClientMessage<PostToChatMessage>
 		return msg;
 	}
 
-    public bool ValidRequest(GameObject player)
-    {
-        PlayerScript playerScript = player.GetComponent<PlayerScript>();
-        //Need to add system channel here so player can transmit system level events but not select it in the UI
-        ChatChannel availableChannels = playerScript.GetAvailableChannels() | ChatChannel.System;
-        if ((availableChannels & Channels) == Channels)
-        {
-            return true;
-        }
-        return false;
-    }
+	public bool ValidRequest(GameObject player)
+	{
+		PlayerScript playerScript = player.GetComponent<PlayerScript>();
+		//Need to add system channel here so player can transmit system level events but not select it in the UI
+		ChatChannel availableChannels = playerScript.GetAvailableChannels() | ChatChannel.System;
+		if ((availableChannels & Channels) == Channels)
+		{
+			return true;
+		}
+		return false;
+	}
 
 	public override string ToString()
 	{

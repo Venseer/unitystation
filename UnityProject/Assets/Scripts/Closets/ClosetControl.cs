@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using PlayGroup;
 using PlayGroups.Input;
+using Tilemaps;
+using Tilemaps.Behaviours.Objects;
 using Tilemaps.Scripts;
-using Tilemaps.Scripts.Behaviours.Objects;
 using UI;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -20,13 +21,14 @@ namespace Cupboards
 
 		private IEnumerable<ObjectBehaviour> heldPlayers = new List<ObjectBehaviour>();
 
-		[SyncVar(hook = "OpenClose")] public bool IsClosed;
+		[SyncVar(hook = nameof(OpenClose))] public bool IsClosed;
 
-		[SyncVar(hook = "LockUnlock")] public bool IsLocked;
+		[SyncVar(hook = nameof(LockUnlock))] public bool IsLocked;
 		public GameObject items;
 		public LockLightController lockLight;
-		private Matrix matrix;
+		
 		private RegisterCloset registerTile;
+		private Matrix matrix => registerTile.Matrix;
 
 		public SpriteRenderer spriteRenderer;
 
@@ -38,7 +40,6 @@ namespace Cupboards
 		private void Start()
 		{
 			registerTile = GetComponent<RegisterCloset>();
-			matrix = Matrix.GetMatrix(this);
 		}
 
 		public override void OnStartServer()
@@ -203,9 +204,15 @@ namespace Cupboards
 			}
 			foreach (ObjectBehaviour item in heldItems)
 			{
+				CustomNetTransform netTransform = item.GetComponent<CustomNetTransform>();
 				if (on)
 				{
-					item.transform.position = transform.position;
+					netTransform.AppearAtPositionServer(transform.localPosition);
+//					item.transform.position = transform.position;
+				}
+				else
+				{
+					netTransform.DisappearFromWorldServer();
 				}
 
 				item.visibleState = on;
@@ -231,7 +238,7 @@ namespace Cupboards
 				{
 					//Make sure a ClosetPlayerHandler is created on the client to monitor 
 					//the players input inside the storage. The handler also controls the camera follow targets:
-					ClosetHandlerMessage.Send(player.gameObject, this.gameObject);
+					ClosetHandlerMessage.Send(player.gameObject, gameObject);
 				}
 			}
 		}

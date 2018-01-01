@@ -1,20 +1,10 @@
-﻿using UnityEngine.Networking;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-
-public enum Department 
-{
-    TheGrayTide,
-    Personnel,
-    Medical,
-    Research,
-    Security,
-    Engineering
-}
+using UnityEngine.Networking;
 
 public class SpawnPoint : NetworkStartPosition
-{   
-    public static readonly Dictionary<Department, JobType[]> DepartmentJobs
+{
+    private static readonly Dictionary<Department, JobType[]> DepartmentJobs
         = new Dictionary<Department, JobType[]>
         {
             { Department.TheGrayTide, new [] { JobType.ASSISTANT, JobType.BARTENDER, JobType.BOTANIST, JobType.CAPTAIN, JobType.CHAPLAIN, JobType.CLOWN, JobType.COOK, JobType.CURATOR, JobType.JANITOR} },
@@ -24,20 +14,13 @@ public class SpawnPoint : NetworkStartPosition
             { Department.Security, new [] {JobType.DETECTIVE, JobType.HOS, JobType.LAWYER, JobType.SECURITY_OFFICER, JobType.WARDEN} },
             { Department.Engineering, new [] {JobType.ATMOSTECH, JobType.CHIEF_ENGINEER, JobType.ENGINEER, JobType.ENGSEC} },
         };
-    
-    public JobType[] JobRestrictions => _jobRestrictions;
+
+    public IEnumerable<JobType> JobRestrictions => DepartmentJobs[Department]; 
+
     public Department Department;
 
-    private JobType[] _jobRestrictions;
-
-    public void Awake()
-    {
-        base.Awake();
-        _jobRestrictions = DepartmentJobs[Department];
-    }
-
-    public static Department GetJobDepartment(JobType job)
-    {
-        return DepartmentJobs.FirstOrDefault(x => x.Value.Contains(job)).Key;
-    }
+	public static Department GetJobDepartment(JobType job)
+	{
+		return DepartmentJobs.FirstOrDefault(x => x.Value.Contains(job)).Key;
+	}
 }

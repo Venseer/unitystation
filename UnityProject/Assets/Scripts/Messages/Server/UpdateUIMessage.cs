@@ -6,11 +6,11 @@ using UnityEngine.Networking;
 /// <summary>
 ///     Message that updates the hud of the Client's UI sent from the server
 /// </summary>
-public class UpdateUIMessage : ServerMessage<UpdateUIMessage>
+public class UpdateUIMessage : ServerMessage
 {
+	public static short MessageType = (short) MessageTypes.UpdateUIMessage;
 	public int CurHealth;
 	public NetworkInstanceId Recipient;
-	public static short MessageType = (short) MessageTypes.UpdateUIMessage;
 
 	public override IEnumerator Process()
 	{

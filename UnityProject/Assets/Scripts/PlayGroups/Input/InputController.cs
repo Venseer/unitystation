@@ -89,8 +89,13 @@ namespace PlayGroups.Input
 				{
 					List<GameObject> objects = UITileList.GetItemsAtPosition(position);
 					LayerTile tile = UITileList.GetTileAtPosition(position);
-					ControlTabs.ShowItemListTab(objects, tile, position);
+					if (tile)
+					{
+						ControlTabs.ShowItemListTab(objects, tile, position);
+					}
 				}
+				Debug.LogFormat($"clicked position:{Vector3Int.RoundToInt(position)}");
+				UIManager.SetToolTip = $"clicked position: {Vector3Int.RoundToInt(position)}";
 			}
 		}
 
@@ -203,7 +208,6 @@ namespace PlayGroups.Input
 			{
 				return false;
 			}
-			;
 
 			//attempt to trigger the things in range we clicked on
 			if (PlayerManager.LocalPlayerScript.IsInReach(position))

@@ -6,11 +6,11 @@ using UnityEngine.Networking;
 /// <summary>
 ///     Removes Encryptionkey from a headset
 /// </summary>
-public class RemoveEncryptionKeyMessage : ClientMessage<RemoveEncryptionKeyMessage>
+public class RemoveEncryptionKeyMessage : ClientMessage
 {
-	public GameObject HeadsetItem;
 	public static short MessageType = (short) MessageTypes.RemoveEncryptionKeyMessage;
-	
+	public GameObject HeadsetItem;
+
 	public override IEnumerator Process()
 	{
 		yield return WaitFor(SentBy);

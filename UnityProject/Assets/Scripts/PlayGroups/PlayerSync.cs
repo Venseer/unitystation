@@ -1,7 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using Tilemaps;
+using Tilemaps.Behaviours.Objects;
 using Tilemaps.Scripts;
-using Tilemaps.Scripts.Behaviours.Objects;
 using UI;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -29,7 +30,7 @@ namespace PlayGroup
 
 		private Vector2 lastDirection;
 
-		private Matrix matrix;
+		private Matrix matrix => registerTile.Matrix;
 		private Queue<PlayerAction> pendingActions;
 		public PlayerMove playerMove;
 		private PlayerScript playerScript;
@@ -39,7 +40,7 @@ namespace PlayGroup
 		public GameObject pullingObject;
 
 		//pull objects
-		[SyncVar(hook = "PullReset")] public NetworkInstanceId pullObjectID;
+		[SyncVar(hook = nameof(PullReset))] public NetworkInstanceId pullObjectID;
 
 		private Vector3 pullPos;
 		private RegisterTile pullRegister;
@@ -139,7 +140,6 @@ namespace PlayGroup
 			healthBehaviorScript = GetComponent<HealthBehaviour>();
 			registerTile = GetComponent<RegisterTile>();
 			pushPull = GetComponent<PushPull>();
-			matrix = Matrix.GetMatrix(this);
 		}
 
 
@@ -245,8 +245,9 @@ namespace PlayGroup
 			else
 			{
 				PlayerState state = isLocalPlayer ? predictedState : serverState;
-				playerScript.ghost.transform.localPosition =
-					Vector3.MoveTowards(playerScript.ghost.transform.localPosition, state.Position, playerMove.speed * Time.deltaTime);
+					playerScript.ghost.transform.localPosition =
+						Vector3.MoveTowards(playerScript.ghost.transform.localPosition, state.Position, playerMove.speed * Time.deltaTime);
+				
 			}
 		}
 
@@ -315,13 +316,12 @@ namespace PlayGroup
 					pullRegister.UpdatePosition();
 
 
-						//Could be a another player
-						PlayerSync otherPlayerSync = pullingObject.GetComponent<PlayerSync>();
-						if (otherPlayerSync != null)
-						{
-							CmdSetPositionFromReset(gameObject, otherPlayerSync.gameObject, pullingObject.transform.localPosition);
-						}
-					
+					//Could be a another player
+					PlayerSync otherPlayerSync = pullingObject.GetComponent<PlayerSync>();
+					if (otherPlayerSync != null)
+					{
+						CmdSetPositionFromReset(gameObject, otherPlayerSync.gameObject, pullingObject.transform.localPosition);
+					}
 				}
 				pullRegister = null;
 				pullingObject = null;
@@ -360,29 +360,35 @@ namespace PlayGroup
 
 		private void CheckSpaceWalk()
 		{
+			if (matrix == null)
+			{
+				return;
+			}
 			Vector3Int pos = Vector3Int.RoundToInt(transform.localPosition);
-			if (matrix != null && matrix.IsFloatingAt(pos))
+			if (matrix.IsFloatingAt(pos))
 			{
 				Vector3Int newGoal = Vector3Int.RoundToInt(transform.localPosition + (Vector3) lastDirection);
 				serverState.Position = newGoal;
 				predictedState.Position = newGoal;
-				if (!healthBehaviorScript.IsDead && CustomNetworkManager.Instance._isServer && !isApplyingSpaceDmg)
-				{
-					StartCoroutine(ApplyTempSpaceDamage());
-					isApplyingSpaceDmg = true;
-				}
+			}
+			if (matrix.IsEmptyAt(pos) && !healthBehaviorScript.IsDead && CustomNetworkManager.Instance._isServer
+			    && !isApplyingSpaceDmg)
+			{
+				//Hurting people in space even if they are next to the wall
+				StartCoroutine(ApplyTempSpaceDamage());
+				isApplyingSpaceDmg = true;
 			}
 		}
 
-        //TODO: Remove this when atmos is implemented 
-        //This prevents players drifting into space indefinitely 
-        private IEnumerator ApplyTempSpaceDamage()
-        {
-            yield return new WaitForSeconds(1f);
-            healthBehaviorScript.RpcApplyDamage(null, 5, DamageType.OXY, BodyPartType.HEAD);
-            //No idea why there is an isServer catch on RpcApplyDamage, but will apply on server as well in mean time:
-            healthBehaviorScript.ApplyDamage(null, 5, DamageType.OXY, BodyPartType.HEAD);
-            isApplyingSpaceDmg = false;
-        }
-    }
+		//TODO: Remove this when atmos is implemented 
+		//This prevents players drifting into space indefinitely 
+		private IEnumerator ApplyTempSpaceDamage()
+		{
+			yield return new WaitForSeconds(1f);
+			healthBehaviorScript.RpcApplyDamage(null, 5, DamageType.OXY, BodyPartType.HEAD);
+			//No idea why there is an isServer catch on RpcApplyDamage, but will apply on server as well in mean time:
+			healthBehaviorScript.ApplyDamage(null, 5, DamageType.OXY, BodyPartType.HEAD);
+			isApplyingSpaceDmg = false;
+		}
+	}
 }

@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using Doors;
+using Tilemaps;
+using Tilemaps.Behaviours.Objects;
 using Tilemaps.Scripts;
-using Tilemaps.Scripts.Behaviours.Objects;
 using UI;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -34,24 +35,26 @@ namespace PlayGroup
 
 		private PlayerSprites playerSprites;
 		private PlayerSync playerSync;
+
+		private PlayerNetworkActions pna;
 		[HideInInspector] public PushPull pushPull; //The push pull component attached to this player
 		public float speed = 10;
 
 		public bool IsPushing { get; set; }
 
-		private Matrix matrix => _matrix ?? (_matrix = Matrix.GetMatrix(this));
+		private RegisterTile registerTile;
+		private Matrix matrix => registerTile.Matrix;
 
 		/// temp solution for use with the UI network prediction
 		public bool isMoving { get; } = false;
-
-        PlayerNetworkActions pna;
 
 		private void Start()
 		{
 			playerSprites = gameObject.GetComponent<PlayerSprites>();
 			playerSync = GetComponent<PlayerSync>();
 			pushPull = GetComponent<PushPull>();
-            pna = PlayerManager.LocalPlayer.GetComponent<PlayerNetworkActions>();
+			registerTile = GetComponent<RegisterTile>();
+			pna = gameObject.GetComponent<PlayerNetworkActions>();
 		}
 
 		public PlayerAction SendAction()
@@ -217,41 +220,41 @@ namespace PlayGroup
 			{
 				if (pushPulls[i] && pushPulls[i].gameObject != gameObject)
 				{
-					pushPulls[i].TryPush(gameObject, speed, direction);
+					pushPulls[i].TryPush(gameObject, direction);
 				}
 			}
 		}
 
-        private void InteractDoor(Vector3 currentPosition, Vector3 direction)
-        {
-            // Make sure there is a door controller
-            Vector3Int position = Vector3Int.RoundToInt(currentPosition + direction);
+		private void InteractDoor(Vector3 currentPosition, Vector3 direction)
+		{
+			// Make sure there is a door controller
+			Vector3Int position = Vector3Int.RoundToInt(currentPosition + direction);
 
-            DoorController doorController = matrix.GetFirst<DoorController>(position);
+			DoorController doorController = matrix.GetFirst<DoorController>(position);
 
-            if (!doorController)
-            {
-                doorController = matrix.GetFirst<DoorController>(Vector3Int.RoundToInt(currentPosition));
+			if (!doorController)
+			{
+				doorController = matrix.GetFirst<DoorController>(Vector3Int.RoundToInt(currentPosition));
 
-                if (doorController)
-                {
-                    RegisterDoor registerDoor = doorController.GetComponent<RegisterDoor>();
-                    if (registerDoor.IsPassable(position))
-                    {
-                        doorController = null;
-                    }
-                }
-            }
+				if (doorController)
+				{
+					RegisterDoor registerDoor = doorController.GetComponent<RegisterDoor>();
+					if (registerDoor.IsPassable(position))
+					{
+						doorController = null;
+					}
+				}
+			}
 
-            // Attempt to open door
-            if (doorController != null && allowInput)
-            {
-                pna.CmdCheckDoorPermissions(doorController.gameObject, this.gameObject);
+			// Attempt to open door
+			if (doorController != null && allowInput)
+			{
+				pna.CmdCheckDoorPermissions(doorController.gameObject, gameObject);
 
-                allowInput = false;
-                StartCoroutine(DoorInputCoolDown());
-            }
-        }
+				allowInput = false;
+				StartCoroutine(DoorInputCoolDown());
+			}
+		}
 
 		//FIXME an ugly temp fix for an ugly problem. Will implement callbacks after 0.1.3
 		private IEnumerator DoorInputCoolDown()

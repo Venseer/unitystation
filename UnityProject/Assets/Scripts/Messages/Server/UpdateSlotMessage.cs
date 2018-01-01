@@ -6,13 +6,13 @@ using UnityEngine.Networking;
 /// <summary>
 ///     Tells client to update certain slot (place an object)
 /// </summary>
-public class UpdateSlotMessage : ServerMessage<UpdateSlotMessage>
+public class UpdateSlotMessage : ServerMessage
 {
+	public static short MessageType = (short) MessageTypes.UpdateSlotMessage;
 	public bool ForceRefresh;
 	public NetworkInstanceId ObjectForSlot;
 	public NetworkInstanceId Recipient;
 	public string Slot;
-	public static short MessageType = (short) MessageTypes.UpdateSlotMessage;
 
 	public override IEnumerator Process()
 	{

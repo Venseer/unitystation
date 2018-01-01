@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using Tilemaps.Scripts;
-using Tilemaps.Scripts.Behaviours.Objects;
+﻿using Tilemaps.Scripts;
 using UnityEngine;
 
 namespace Cupboards
@@ -23,7 +21,6 @@ namespace Cupboards
 		{
 			closetControl = closetCtrl;
 			
-			Matrix matrix = Matrix.GetMatrix(this);
 			Camera2DFollow.followControl.target = closetControl.transform;
 			Camera2DFollow.followControl.damping = 0.2f;
 

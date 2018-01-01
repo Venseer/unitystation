@@ -99,7 +99,7 @@ namespace UI
 			{
 				return false;
 			}
-			InventoryInteractMessage.Send(slotInfo.Slot, slotInfo.SlotContents, true);
+			InventoryInteractMessage.Send(slotInfo.Slot, slotInfo.SlotContents, true, Vector3.zero);
 			UpdateSlot(slotInfo);
 			return true;
 		}
@@ -183,6 +183,27 @@ namespace UI
 				if (InventorySlots[i].Item.Equals(slotInfo.SlotContents))
 				{
 					InventorySlots[i].Clear();
+				}
+			}
+		}
+
+		public static void SetDeathVisibility(bool vis)
+		{
+			Debug.Log("I was activated!");
+			foreach (Transform child in Display.hudRight.GetComponentsInChildren<Transform>(true))
+			{
+				if (child.gameObject.name != "OxygenSelector" && child.gameObject.name != "PlayerHealth_UI_Hud")
+				{
+					child.gameObject.SetActive(vis);
+				}
+			}
+
+			foreach (Transform child in Display.hudBottom.GetComponentsInChildren<Transform>(true))
+			{
+				Transform eh = Display.hudBottom.transform.Find("Equip-Hands");
+				if (child.gameObject.name != "Panel_Hud_Bottom" && !child.transform.IsChildOf(eh) && child.gameObject.name != "Equip-Hands")
+				{
+					child.gameObject.SetActive(vis);
 				}
 			}
 		}

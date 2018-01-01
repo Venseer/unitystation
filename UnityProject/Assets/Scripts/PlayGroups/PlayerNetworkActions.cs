@@ -8,7 +8,7 @@ using Equipment;
 using Lighting;
 using PlayGroup;
 using PlayGroups.Input;
-using Tilemaps.Scripts.Behaviours.Objects;
+using Tilemaps.Behaviours.Objects;
 using UI;
 using UnityEngine;
 using UnityEngine.Networking;
@@ -22,10 +22,9 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		"suitStorage"
 	};
 
-    // For access checking. Must be nonserialized.
-    // This has to be added because using the UIManager at client gets the server's UIManager. So instead I just had it send the active hand to be cached at server.
-    [System.NonSerialized]
-    public string activeHand = "right";
+	// For access checking. Must be nonserialized.
+	// This has to be added because using the UIManager at client gets the server's UIManager. So instead I just had it send the active hand to be cached at server.
+	[NonSerialized] public string activeHand = "right";
 
 	private ChatIcon chatIcon;
 
@@ -48,18 +47,18 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		chatIcon = GetComponentInChildren<ChatIcon>();
 	}
 
-    public override void OnStartServer()
-    {
-        if (isServer)
-        {
-            foreach (string slotName in slotNames)
-            {
-                Inventory.Add(slotName, null);
-            }
-        }
-        
-        base.OnStartServer();
-    }
+	public override void OnStartServer()
+	{
+		if (isServer)
+		{
+			foreach (string slotName in slotNames)
+			{
+				Inventory.Add(slotName, null);
+			}
+		}
+
+		base.OnStartServer();
+	}
 
 	[Server]
 	public bool AddItem(GameObject itemObject, string slotName = null, bool replaceIfOccupied = false, bool forceInform = true)
@@ -101,8 +100,12 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		EquipmentPool.AddGameObject(gameObject, obj);
 	}
 
+	/// <summary>
+	/// Validates the inv interaction.
+	/// If you are not validating a drop action then pass Vector3.zero to dropWorldPos
+	/// </summary>
 	[Server]
-	public bool ValidateInvInteraction(string slot, GameObject gObj = null, bool forceClientInform = true)
+	public bool ValidateInvInteraction(string slot, Vector3 dropWorldPos, GameObject gObj = null, bool forceClientInform = true)
 	{
 		if (!Inventory[slot] && gObj && Inventory.ContainsValue(gObj))
 		{
@@ -115,7 +118,7 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		}
 		if (!gObj)
 		{
-			return ValidateDropItem(slot, forceClientInform);
+			return ValidateDropItem(slot, forceClientInform, dropWorldPos);
 		}
 		Debug.LogWarningFormat("Unable to validateInvInteraction {0}:{1}", slot, gObj.name);
 		return false;
@@ -198,35 +201,35 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 
 	/// Drop an item from a slot. use forceSlotUpdate=false when doing clientside prediction, 
 	/// otherwise client will forcefully receive update slot messages
-	public void DropItem(string hand, bool forceClientInform = true)
+	public void RequestDropItem(string hand, Vector3 dropWorldPos, bool forceClientInform = true)
 	{
-		if (CustomNetworkManager.Instance._isServer)
-		{
-			ValidateDropItem(hand, forceClientInform);
-		}
-		else
-		{
-			InventoryInteractMessage.Send(hand, null, forceClientInform);
-		}
+		InventoryInteractMessage.Send(hand, null, forceClientInform, dropWorldPos);
 	}
 
 	//Dropping from a slot on the UI
 	[Server]
-	public bool ValidateDropItem(string slot, bool forceClientInform /* = false*/)
+	public bool ValidateDropItem(string slot, bool forceClientInform /* = false*/, Vector3 dropWorldPos)
 	{
 		//decline if not dropped from hands?
 		if (Inventory.ContainsKey(slot) && Inventory[slot])
 		{
-			EquipmentPool.DropGameObject(gameObject, Inventory[slot]);
-
-			//            RpcAdjustItemParent(_inventory[slot], null);
-			Inventory[slot] = null;
-			equipment.ClearItemSprite(slot);
-			UpdateSlotMessage.Send(gameObject, slot, null, forceClientInform);
+			DropItem(slot, dropWorldPos, forceClientInform);
 			return true;
 		}
-		Debug.Log("Object not found in Inventory for: " + gameObject.name);
+		Debug.Log("Object not found in Inventory");
 		return false;
+	}
+
+	/// <summary>
+	///     Imperative drop
+	/// </summary>
+	[Server]
+	public void DropItem(string slot,Vector3 dropWorldPos, bool forceClientInform = true)
+	{
+		EquipmentPool.DropGameObjectAtPos(gameObject, Inventory[slot], dropWorldPos);
+		Inventory[slot] = null;
+		equipment.ClearItemSprite(slot);
+		UpdateSlotMessage.Send(gameObject, slot, null, forceClientInform);
 	}
 
 	//Dropping from somewhere else in the players equipmentpool (Magazine ejects from weapons etc)
@@ -462,7 +465,7 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		yield return new WaitForSeconds(timeout);
 		RpcAdjustForRespawn();
 
-		EquipmentPool.ClearPool(gameObject.name);
+		EquipmentPool.ClearPool(gameObject);
 
 		//Remove player objects
 		PlayerList.Instance.RemovePlayer(gameObject.name);
@@ -482,11 +485,11 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		gameObject.GetComponent<InputController>().enabled = false;
 	}
 
-    [Command]
-    public void CmdTryOpenDoor(GameObject door)
-    {
-        door.GetComponent<DoorController>().CmdTryOpen(gameObject);
-    }
+	[Command]
+	public void CmdTryOpenDoor(GameObject door)
+	{
+		door.GetComponent<DoorController>().CmdTryOpen(gameObject);
+	}
 
 	[Command]
 	public void CmdTryCloseDoor(GameObject door)
@@ -500,14 +503,14 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		door.GetComponent<DoorController>().CmdTryDenied();
 	}
 
-    [Command]
-    public void CmdCheckDoorPermissions(GameObject door, GameObject player)
-    {
-        if(door.GetComponent<DoorController>() != null)
-        {
-            door.GetComponent<DoorController>().CmdCheckDoorPermissions(door, player);
-        }
-    }
+	[Command]
+	public void CmdCheckDoorPermissions(GameObject door, GameObject player)
+	{
+		if (door.GetComponent<DoorController>() != null)
+		{
+			door.GetComponent<DoorController>().CmdCheckDoorPermissions(door, player);
+		}
+	}
 
 	//FOOD
 	[Command]
@@ -536,10 +539,9 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		equipment.ClearItemSprite(fromSlot);
 	}
 
-    [Command]
-    public void CmdSetActiveHand(string hand)
-    {
-        activeHand = hand;
-    }
-    
+	[Command]
+	public void CmdSetActiveHand(string hand)
+	{
+		activeHand = hand;
+	}
 }

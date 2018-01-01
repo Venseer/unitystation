@@ -2,11 +2,11 @@
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class SimpleInteractMessage : ClientMessage<SimpleInteractMessage>
+public class SimpleInteractMessage : ClientMessage
 {
-	public NetworkInstanceId Subject;
 	public static short MessageType = (short) MessageTypes.SimpleInteractMessage;
-	
+	public NetworkInstanceId Subject;
+
 	public override IEnumerator Process()
 	{
 		//		Debug.Log("Processed " + ToString());

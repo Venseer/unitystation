@@ -56,6 +56,8 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 		{
 			objA.pulledBy.GetComponent<PlayerNetworkActions>().CmdStopPulling(obj);
 		}
+		var netTransform = obj.GetComponent<CustomNetTransform>();
+		netTransform.SetPosition(obj.transform.localPosition);
 	}
 
 	[Command]
@@ -77,15 +79,18 @@ public partial class PlayerNetworkActions : NetworkBehaviour
 			pS.pullObjectID = NetworkInstanceId.Invalid;
 			pulled.pulledBy = null;
 		}
+		var netTransform = obj.GetComponent<CustomNetTransform>();
+		netTransform.SetPosition(obj.transform.localPosition);
 	}
 
 	[Command]
-	public void CmdTryPush(GameObject obj, Vector3 startLocalPos, Vector3 targetPos)
+	public void CmdTryPush(GameObject obj, Vector3 startLocalPos, Vector3 targetPos, float speed)
 	{
 		PushPull pushed = obj.GetComponent<PushPull>();
 		if (pushed != null)
 		{
-			pushed.RpcPushSync(startLocalPos, targetPos);
+			var netTransform = obj.GetComponent<CustomNetTransform>();
+			netTransform.SetPosition(targetPos, true, speed, true);
 		}
 	}
 }
