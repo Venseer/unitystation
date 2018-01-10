@@ -28,6 +28,8 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 	private SoundNetworkActions soundNetworkActions;
 	private GameObject spritesObj;
 
+	private GameObject casingPrefab;
+
 	private void Start()
 	{
 		spritesObj = transform.Find("Sprites").gameObject;
@@ -35,6 +37,8 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 		soundNetworkActions = GetComponent<SoundNetworkActions>();
 		playerScript = GetComponent<PlayerScript>();
 		lerpSprite = null;
+
+		casingPrefab = Resources.Load("BulletCasing") as GameObject;
 	}
 
 	[Command]
@@ -90,9 +94,12 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 		Ray2D ray = new Ray2D(transform.position, direction);
 		RpcShootBullet(weapon, ray.GetPoint(30f), bulletName, damageZone);
 
-		//TODO add a check to see if bullet or energy weapon
-		SpawnBulletCaseing();
-		if (!isFlashing)
+		if (wepBehavior.SpawnsCaseing)
+		{
+			ItemFactory.SpawnItem(casingPrefab, transform.position, transform.parent);
+		}
+
+        if (!isFlashing)
 		{
 			isFlashing = true;
 			StartCoroutine(ShowMuzzleFlash());
@@ -139,9 +146,11 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 	[Command] //TODO fixme ghetto proof-of-concept
 	public void CmdKnifeAttackMob(GameObject npcObj, GameObject weapon, Vector2 stabDirection, BodyPartType damageZone)
 	{
-		HealthBehaviour healthBehaviour = npcObj.GetComponent<HealthBehaviour>();
-		if (healthBehaviour.IsDead == false)
+		// checks object and component existence before defining healthBehaviour variable.
+		if (npcObj && npcObj.GetComponent<HealthBehaviour>().IsDead == false)
 		{
+			HealthBehaviour healthBehaviour = npcObj.GetComponent<HealthBehaviour>();
+
 			if (!playerMove.allowInput || !allowAttack || playerMove.isGhost)
 			{
 				return;
@@ -159,6 +168,7 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 
 			soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
 			StartCoroutine(AttackCoolDown());
+
 		}
 		else
 		{
@@ -210,9 +220,9 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 		if (lerpSprite != null)
 		{
 			playerScript.hitIcon.ShowHitIcon(stabDir, lerpSprite);
-			if (PlayerManager.LocalPlayer.gameObject.name == gameObject.name)
+			if (PlayerManager.LocalPlayer && PlayerManager.LocalPlayer.gameObject.name == gameObject.name)
 			{
-				PlayerManager.LocalPlayerScript.playerMove.allowInput = false;
+				PlayerManager.LocalPlayerScript.playerMove.allowInput = true;
 			}
 		}
 		lerpFrom = transform.position;
@@ -237,10 +247,10 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 				{
 					ResetLerp();
 					spritesObj.transform.localPosition = Vector3.zero;
-					if (PlayerManager.LocalPlayer.name == gameObject.name)
-					{
-						PlayerManager.LocalPlayerScript.playerMove.allowInput = true;
-					}
+						if (PlayerManager.LocalPlayer && PlayerManager.LocalPlayer.gameObject.name == gameObject.name)
+						{
+							PlayerManager.LocalPlayerScript.playerMove.allowInput = true;
+						}
 				}
 				else
 				{
@@ -272,7 +282,7 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 
 	#region Weapon Network Supporting Methods
 
-	private Vector2 GetRecoilOffset(Weapon weapon, float angle)
+	private static Vector2 GetRecoilOffset(Weapon weapon, float angle)
 	{
 		float angleVariance = Random.Range(-weapon.CurrentRecoilVariance, weapon.CurrentRecoilVariance);
 		float newAngle = angle * Mathf.Deg2Rad + angleVariance;
@@ -280,7 +290,7 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 		return vec2;
 	}
 
-	private void AppendRecoil(Weapon weapon, float angle)
+	private static void AppendRecoil(Weapon weapon, float angle)
 	{
 		if (weapon != null && weapon.CurrentRecoilVariance < weapon.MaxRecoilVariance)
 		{
@@ -293,13 +303,6 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 				weapon.CurrentRecoilVariance = weapon.MaxRecoilVariance;
 			}
 		}
-	}
-
-	private void SpawnBulletCaseing()
-	{
-		GameObject casing = Instantiate(Resources.Load("BulletCasing") as GameObject, transform.position,
-			Quaternion.identity);
-		NetworkServer.Spawn(casing);
 	}
 
 	#endregion

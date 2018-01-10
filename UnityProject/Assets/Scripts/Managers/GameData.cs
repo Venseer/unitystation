@@ -43,6 +43,13 @@ public class GameData : MonoBehaviour
 		}
 
 		Environment.SetEnvironmentVariable("MONO_REFLECTION_SERIALIZER", "yes");
+
+		string testServerEnv = Environment.GetEnvironmentVariable("TEST_SERVER");
+		if (!string.IsNullOrEmpty(testServerEnv))
+		{
+			testServer = Convert.ToBoolean(testServerEnv);
+		}
+
 		LoadData();
 	}
 
@@ -108,15 +115,23 @@ public class GameData : MonoBehaviour
 			{
 				IsHeadlessServer = true;
 			}
-			if (GameManager.Instance != null && CustomNetworkManager.Instance._isServer)
+			if (IsInGame && GameManager.Instance != null && CustomNetworkManager.Instance._isServer)
 			{
 				GameManager.Instance.ResetRoundTime();
 			}
 			return;
 		}
+		//force vsync when not-headless
+		if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null && !Instance.testServer && !IsHeadlessServer)
+		{
+			Application.targetFrameRate = 60;
+			QualitySettings.vSyncCount = 1;
+		}
 		//Check if running in batchmode (headless server)
 		if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null || Instance.testServer)
 		{
+			float calcFrameRate =  1f / Time.fixedDeltaTime;
+			Application.targetFrameRate = (int) calcFrameRate;
 			Debug.Log("START SERVER HEADLESS MODE");
 			IsHeadlessServer = true;
 			StartCoroutine(WaitToStartServer());

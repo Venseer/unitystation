@@ -217,6 +217,9 @@ namespace PlayGroup
 		{
 			if (CustomNetworkManager.Instance._isServer)
 			{
+				PlayerNetworkActions pna = gameObject.GetComponent<PlayerNetworkActions>();
+				PlayerMove pm = gameObject.GetComponent<PlayerMove>();
+				
 				string killerName = "stressfull work";
 				if (LastDamagedBy != null)
 				{
@@ -241,9 +244,9 @@ namespace PlayGroup
 					string departmentKillText = "";
 					if (LastDamagedBy != null)
 					{
-						Department killerDepartment =
+						JobDepartment killerDepartment =
 							SpawnPoint.GetJobDepartment(LastDamagedBy.GetComponent<PlayerScript>().JobType);
-						Department victimDepartment =
+						JobDepartment victimDepartment =
 							SpawnPoint.GetJobDepartment(gameObject.GetComponent<PlayerScript>().JobType);
 
 						if (killerDepartment == victimDepartment)
@@ -264,22 +267,22 @@ namespace PlayGroup
 					//Combat demo killfeed
 					//PostToChatMessage.Send(killerName + " has killed " + gameObject.name, ChatChannel.System);
 				}
-				playerNetworkActions.ValidateDropItem("rightHand", true, transform.position);
-				playerNetworkActions.ValidateDropItem("leftHand", true, transform.position);
+				pna.ValidateDropItem("rightHand", true, transform.position);
+				pna.ValidateDropItem("leftHand", true, transform.position);
 
 				if (isServer)
 				{
 					EffectsFactory.Instance.BloodSplat(transform.position, BloodSplatSize.large);
 				}
 
-				playerNetworkActions.RpcSpawnGhost();
-				playerMove.isGhost = true;
-				playerMove.allowInput = true;
+				pna.RpcSpawnGhost();
+				pm.isGhost = true;
+				pm.allowInput = true;
 				RpcPassBullets(gameObject);
 				PlayerDeathMessage.Send(gameObject);
 
 				//FIXME Remove for next demo
-				playerNetworkActions.RespawnPlayer(10);
+				pna.RespawnPlayer(10);
 			}
 		}
 
@@ -300,22 +303,12 @@ namespace PlayGroup
 		{
 			foreach (GameObject harvestPrefab in butcherResults)
 			{
-				GameObject harvest = Instantiate(harvestPrefab, transform.position, Quaternion.identity);
-				NetworkServer.Spawn(harvest);
+				ItemFactory.SpawnItem(harvestPrefab, transform.position, transform.parent);
 			}
 			EffectsFactory.Instance.BloodSplat(transform.position, BloodSplatSize.medium);
 			//Remove the NPC after all has been harvested
-			RpcHideBody(gameObject);
-		}
-
-		[ClientRpc]
-		private void RpcHideBody(GameObject target)
-		{
-			SpriteRenderer[] componentList = target.GetComponentsInChildren<SpriteRenderer>();
-			foreach (SpriteRenderer comp in componentList)
-			{
-				comp.enabled = false;
-			}
+			ObjectBehaviour objectBehaviour = gameObject.GetComponent<ObjectBehaviour>();
+			objectBehaviour.visibleState = false;
 		}
 	}
 }

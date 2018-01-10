@@ -134,9 +134,9 @@ namespace PlayGroups.Input
 			//check which of the sprite renderers we hit and pixel checked is the highest
 			if (renderers.Count > 0)
 			{
-				foreach (Renderer sprite in renderers.OrderByDescending(sr => sr.sortingOrder))
+				foreach (Renderer _renderer in renderers.OrderByDescending(sr => sr.sortingOrder)) 
 				{
-					if (Interact(sprite.transform, position))
+					if (Interact(_renderer.transform, position))
 					{
 						break;
 					}
@@ -213,7 +213,7 @@ namespace PlayGroups.Input
 			if (PlayerManager.LocalPlayerScript.IsInReach(position))
 			{
 				//check the actual transform for an input trigger and if there is non, check the parent
-				InputTrigger inputTrigger = _transform.GetComponent<InputTrigger>();
+				InputTrigger inputTrigger = _transform.GetComponentInParent<InputTrigger>();
 				if (inputTrigger)
 				{
 					if (objectBehaviour.visibleState)
@@ -221,21 +221,11 @@ namespace PlayGroups.Input
 						inputTrigger.Trigger(position);
 						return true;
 					}
-					return false;
-				}
-				inputTrigger = _transform.parent.GetComponent<InputTrigger>();
-				if (inputTrigger)
-				{
-					if (objectBehaviour.visibleState)
-					{
-						inputTrigger.Trigger();
-						return true;
-					}
 					//Allow interact with cupboards we are inside of!
 					ClosetControl cCtrl = inputTrigger.GetComponent<ClosetControl>();
 					if (cCtrl && cCtrl.transform.position == PlayerManager.LocalPlayerScript.transform.position)
 					{
-						inputTrigger.Trigger();
+						inputTrigger.Trigger(position);
 						return true;
 					}
 					return false;
@@ -284,18 +274,26 @@ namespace PlayGroups.Input
 			if (angle >= 315f && angle <= 360f || angle >= 0f && angle <= 45f)
 			{
 				playerSprites.CmdChangeDirection(Vector2.up);
+				//Prediction
+				playerSprites.FaceDirection(Vector2.up);
 			}
 			if (angle > 45f && angle <= 135f)
 			{
 				playerSprites.CmdChangeDirection(Vector2.right);
+				//Prediction
+				playerSprites.FaceDirection(Vector2.right);
 			}
 			if (angle > 135f && angle <= 225f)
 			{
 				playerSprites.CmdChangeDirection(Vector2.down);
+				//Prediction
+				playerSprites.FaceDirection(Vector2.down);
 			}
 			if (angle > 225f && angle < 315f)
 			{
 				playerSprites.CmdChangeDirection(Vector2.left);
+				//Prediction
+				playerSprites.FaceDirection(Vector2.left);
 			}
 		}
 	}

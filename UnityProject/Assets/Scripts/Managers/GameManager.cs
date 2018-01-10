@@ -4,19 +4,20 @@ using PlayGroup;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
 
 public class GameManager : MonoBehaviour
 {
 	public static GameManager Instance;
 	private readonly float cacheTime = 480f;
-	private bool counting;
+	public bool counting;
 	public List<GameObject> Occupations = new List<GameObject>();
-	private float restartTime = 10f;
+	public float restartTime = 10f;
 
 	public Text roundTimer;
 
 	public GameObject StandardOutfit;
-	private bool waitForRestart;
+	public bool waitForRestart;
 
 	public float GetRoundTime { get; private set; } = 480f;
 
@@ -52,28 +53,27 @@ public class GameManager : MonoBehaviour
 
 	private void OnLevelFinishedLoading(Scene scene, LoadSceneMode mode)
 	{
-		if (scene.name == "DeathMatch" || scene.name == "OutpostDeathmatch")
-		{
-			counting = true;
-		}
+		GetRoundTime = cacheTime;
 	}
 
 	public void SyncTime(float currentTime)
 	{
-		GetRoundTime = currentTime;
-	}
-
-	public void SyncTimendResetCounter(float currentTime)
-	{
-		SyncTime(currentTime);
-		counting = true;
+		if (!CustomNetworkManager.Instance._isServer)
+		{
+			GetRoundTime = currentTime;
+			if (currentTime > 0f)
+			{
+				counting = true;
+			}
+		}
 	}
 
 	public void ResetRoundTime()
 	{
 		GetRoundTime = cacheTime;
-		restartTime = 10f;
+		waitForRestart = false;
 		counting = true;
+		restartTime = 10f;
 		UpdateRoundTimeMessage.Send(GetRoundTime);
 	}
 
@@ -81,6 +81,7 @@ public class GameManager : MonoBehaviour
 	{
 		if (waitForRestart)
 		{
+
 			restartTime -= Time.deltaTime;
 			if (restartTime <= 0f)
 			{
@@ -89,7 +90,7 @@ public class GameManager : MonoBehaviour
 			}
 		}
 
-		if (counting)
+		else if (counting)
 		{
 			GetRoundTime -= Time.deltaTime;
 			roundTimer.text = Mathf.Floor(GetRoundTime / 60).ToString("00") + ":" +
@@ -98,15 +99,21 @@ public class GameManager : MonoBehaviour
 			{
 				counting = false;
 				roundTimer.text = "GameOver";
-				SoundManager.Play("ApcDestroyed", 0.3f, 1f, 0f);
+				
+				// Prevents annoying sound duplicate when testing
+				if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null && !GameData.Instance.testServer)
+				{
+					SoundManager.Play("ApcDestroyed", 0.3f, 1f, 0f);
+				}
 
 				if (CustomNetworkManager.Instance._isServer)
 				{
-					PlayerList.Instance.ReportScores();
 					waitForRestart = true;
+					PlayerList.Instance.ReportScores();
 				}
 			}
 		}
+
 	}
 
 	public int GetOccupationsCount(JobType jobType)
