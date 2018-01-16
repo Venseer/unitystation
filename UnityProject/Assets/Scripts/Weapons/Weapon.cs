@@ -1,10 +1,13 @@
 ﻿using System.Collections;
+using System.Runtime.Serialization.Formatters;
 using Items;
 using PlayGroup;
 using UI;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
+using Equipment;
 
 namespace Weapons
 {
@@ -155,22 +158,58 @@ namespace Weapons
 					if (CurrentMagazine == null)
 					{
 						//RELOAD
-						MagazineBehaviour magazine = currentHandItem.GetComponent<MagazineBehaviour>();
-
-						if (magazine != null && otherHandItem.GetComponent<Weapon>() != null)
+						if (currentHandItem.GetComponent<MagazineBehaviour>() && otherHandItem.GetComponent<Weapon>())
 						{
-							hand = UIManager.Hands.CurrentSlot.eventName;
-							Reload(currentHandItem, hand);
+							string ammoType = currentHandItem.GetComponent<MagazineBehaviour>().ammoType;
+
+							if (AmmoType == ammoType)
+							{
+								hand = UIManager.Hands.CurrentSlot.eventName;
+								Reload(currentHandItem, hand, true);
+								
+							}
+
+							if (AmmoType != ammoType)
+							{
+								UIManager.Chat.AddChatEvent(new ChatEvent("You try to load the wrong ammo into your weapon", ChatChannel.Examine));
+							}
 						}
+
+						if (otherHandItem.GetComponent<MagazineBehaviour>() && currentHandItem.GetComponent<Weapon>())
+						{
+							string ammoType = otherHandItem.GetComponent<MagazineBehaviour>().ammoType;
+
+							if (AmmoType == ammoType)
+							{
+								hand = UIManager.Hands.OtherSlot.eventName;
+								Reload(otherHandItem, hand, false);
+							}
+							if (AmmoType != ammoType)
+							{
+								UIManager.Chat.AddChatEvent(new ChatEvent("You try to load the wrong ammo into your weapon", ChatChannel.Examine));
+							}
+						}
+	
+						
 					}
 					else
 					{
 						//UNLOAD
-						Weapon weapon = currentHandItem.GetComponent<Weapon>();
 
-						if (weapon != null && otherHandItem == null)
+						if (currentHandItem.GetComponent<Weapon>() && otherHandItem == null)
 						{
 							ManualUnload(CurrentMagazine);
+						}
+
+						else if (currentHandItem.GetComponent<Weapon>() && otherHandItem.GetComponent<MagazineBehaviour>())
+						{
+							UIManager.Chat.AddChatEvent(new ChatEvent("You weapon is already loaded, you cant fit more Magazines in it, silly!", ChatChannel.Examine));
+
+						}
+						else if (otherHandItem.GetComponent<Weapon>() && currentHandItem.GetComponent<MagazineBehaviour>())
+						{
+							UIManager.Chat.AddChatEvent(new ChatEvent("You weapon is already loaded, you cant fit more Magazines in it, silly!", ChatChannel.Examine));
+
 						}
 					}
 				}
@@ -209,7 +248,7 @@ namespace Weapons
 		{
 			GameObject ammoPrefab = Resources.Load("Rifles/Magazine_" + AmmoType)  as GameObject;
 			
-			GameObject m =  ItemFactory.SpawnItem(ammoPrefab, transform.parent);
+			GameObject m = ItemFactory.SpawnItem(ammoPrefab, transform.parent);
 			
 			StartCoroutine(SetMagazineOnStart(m));
 
@@ -304,12 +343,19 @@ namespace Weapons
 
 		#region Weapon Loading and Unloading
 
-		private void Reload(GameObject m, string hand)
+		private void Reload(GameObject m, string hand, bool current)
 		{
 			Debug.Log("Reloading");
-			PlayerManager.LocalPlayerScript.weaponNetworkActions.CmdLoadMagazine(gameObject, m);
-			UIManager.Hands.CurrentSlot.Clear();
-			PlayerManager.LocalPlayerScript.playerNetworkActions.ClearInventorySlot(hand);
+			PlayerManager.LocalPlayerScript.weaponNetworkActions.CmdLoadMagazine(gameObject, m, hand);
+			if (current)
+			{
+				UIManager.Hands.CurrentSlot.Clear();
+			}
+			else
+			{
+				UIManager.Hands.OtherSlot.Clear();
+			}
+			
 		}
 
 		//atm unload with shortcut 'e'
@@ -382,15 +428,19 @@ namespace Weapons
 		public void OnAddToPool(NetworkInstanceId ownerId)
 		{
 			ControlledByPlayer = ownerId;
-			if (CurrentMagazine != null && PlayerManager.LocalPlayer == ClientScene.FindLocalObject(ownerId))
+			if (CurrentMagazine != null)
 			{
 				//As the magazine loaded is part of the weapon, then we do not need to add to server cache, we only need to add the item to the equipment pool
-				PlayerManager.LocalPlayerScript.playerNetworkActions.AddToEquipmentPool(CurrentMagazine.gameObject);
+				NetworkServer.FindLocalObject(ownerId).GetComponent<PlayerNetworkActions>().AddToEquipmentPool(CurrentMagazine.gameObject);
 			}
 		}
 
 		public void OnRemoveFromPool()
 		{
+			if (CurrentMagazine != null)
+			{
+				EquipmentPool.DisposeOfObject(NetworkServer.FindLocalObject(ControlledByPlayer).gameObject, CurrentMagazine.gameObject);
+			}
 			ControlledByPlayer = NetworkInstanceId.Invalid;
 		}
 
