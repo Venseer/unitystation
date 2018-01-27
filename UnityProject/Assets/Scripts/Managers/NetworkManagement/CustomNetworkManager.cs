@@ -5,12 +5,18 @@ using UI;
 using UnityEngine;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
+using UnityEngine.Rendering;
+using Facepunch.Steamworks;
 
 public class CustomNetworkManager : NetworkManager
 {
 	public static CustomNetworkManager Instance;
 	[HideInInspector] public bool _isServer;
 	[HideInInspector] public bool spawnableListReady;
+	public bool SteamServer = true;
+	private Server server;
+
+
 
 	private void Awake()
 	{
@@ -91,6 +97,10 @@ public class CustomNetworkManager : NetworkManager
 
 	private void OnDisable()
 	{
+		if (_isServer && server.IsValid)
+		{
+			server.Auth.OnAuthChange += AuthChange;
+		}
 		SceneManager.sceneLoaded -= OnLevelFinishedLoading;
 	}
 
@@ -99,7 +109,61 @@ public class CustomNetworkManager : NetworkManager
 		_isServer = true;
 		base.OnStartServer();
 		this.RegisterServerHandlers();
+		if (SteamServer)
+		{
+			SteamServerStart();
+		}
 	}
+	
+	public void SteamServerStart()
+	{
+		// init the SteamServer needed for authentication of players
+		//		
+		Facepunch.Steamworks.Config.ForUnity( Application.platform.ToString() );
+		string path = Path.GetFullPath(".");
+		string folderName = Path.GetFileName(Path.GetDirectoryName( path ) );
+		ServerInit options = new Facepunch.Steamworks.ServerInit(folderName, "Unitystation");
+		server = new Facepunch.Steamworks.Server(787180, options);
+
+		if (server != null)
+		{
+			if (GameData.IsHeadlessServer || GameData.Instance.testServer || SystemInfo.graphicsDeviceType == GraphicsDeviceType.Null)
+			{
+				server.DedicatedServer = true;
+			}
+			server.LogOnAnonymous();
+			server.ServerName = "Unitystation Official";
+			// Set required settings for dedicated server
+
+			Debug.Log("Setting up Auth hook");
+			//Process callback data for authentication
+			server.Auth.OnAuthChange = AuthChange;
+		}
+		// confirm in log if server is actually registered or not
+		if (server.IsValid)
+		{
+			Debug.Log("Server registered");
+		}
+		else
+		{
+			Debug.Log("Server NOT registered");
+		}
+
+	}
+	
+
+// This method processes the callback data when authentication statuses change
+public void AuthChange(ulong steamid, ulong ownerid, ServerAuth.Status status)
+{
+	//TODO Add function to authentication and set persistent authentication flag on player.
+	bool Authed;
+	Authed = status == ServerAuth.Status.OK;
+
+	Debug.Log( "steamid: {0}" + steamid );
+	Debug.Log( "ownerid: {0}" + ownerid );
+	Debug.Log( "status: {0}" + status );
+}
+
 
 	public override void OnServerAddPlayer(NetworkConnection conn, short playerControllerId)
 	{
@@ -125,11 +189,36 @@ public class CustomNetworkManager : NetworkManager
 			UpdateRoundTimeMessage.Send(GameManager.Instance.GetRoundTime);
 		}
 	}
-
 	private IEnumerator WaitToSpawnPlayer(NetworkConnection conn, short playerControllerId)
 	{
 		yield return new WaitForSeconds(1f);
 		OnServerAddPlayerInternal(conn, playerControllerId);
+	}
+
+	void Update()
+	{
+		// This code makes sure the steam server is updated
+		if (server == null)
+			return;
+		try
+		{
+			UnityEngine.Profiling.Profiler.BeginSample("Steam Server Update");
+			server.Update();
+		}
+		finally
+		{
+			UnityEngine.Profiling.Profiler.EndSample();
+		}
+	}
+
+	private void OnDestroy()
+	{
+		// This code makes sure the steam server is disposed when the CNM is destroyed
+		if (server != null)
+		{
+			server.Dispose();
+			server = null;
+		}
 	}
 
 	private void OnServerAddPlayerInternal(NetworkConnection conn, short playerControllerId)
@@ -167,10 +256,14 @@ public class CustomNetworkManager : NetworkManager
 
 	public override void OnClientConnect(NetworkConnection conn)
 	{
-		if (_isServer)
-		{
-			//do special server wizardry here
-		}
+//		if (_isServer)
+//		{
+//			//do special server wizardry here
+//			PlayerList.Instance.Add(new ConnectedPlayer
+//			{
+//				Connection = conn,
+//			});
+//		}
 
 		if (GameData.IsInGame && PoolManager.Instance == null)
 		{
@@ -204,22 +297,16 @@ public class CustomNetworkManager : NetworkManager
 		base.OnClientConnect(conn);
 	}
 
+	/// server actions when client disconnects 
 	public override void OnServerDisconnect(NetworkConnection conn)
 	{
-		if (conn != null && conn.playerControllers.Count > 0)
+		var player = PlayerList.Instance.Get(conn);
+		if ( player.GameObject )
 		{
-			GameObject player = conn.playerControllers[0].gameObject;
-			PlayerList.Instance.RemovePlayer(player.name);
-
-			//Notify clients that the connected players list should be updated
-			GameObject[] players = new GameObject[PlayerList.Instance.connectedPlayers.Count];
-			PlayerList.Instance.connectedPlayers.Values.CopyTo(players, 0);
-			UpdateConnectedPlayersMessage.Send(players);
-
-			//TODO DROP ALL HIS OBJECTS
-			Debug.Log("PlayerDisconnected: " + conn.playerControllers[0].gameObject.name);
-			NetworkServer.Destroy(conn.playerControllers[0].gameObject);
+			player.GameObject.GetComponent<PlayerNetworkActions>().DropAllOnQuit();
 		}
+		Debug.Log($"Player Disconnected: {player.Name}");
+		PlayerList.Instance.Remove(conn);
 	}
 
 	private void OnLevelFinishedLoading(Scene scene, LoadSceneMode mode)
@@ -259,6 +346,7 @@ public class CustomNetworkManager : NetworkManager
 		}
 	}
 
+
 	//Editor item transform dance experiments
 #if UNITY_EDITOR
 	public void MoveAll()
@@ -286,7 +374,7 @@ public class CustomNetworkManager : NetworkManager
 
 	private static void NudgeTransform(CustomNetTransform netTransform, Vector3 where)
 	{
-		netTransform.SetPosition(netTransform.transform.position + where);
+		netTransform.SetPosition(netTransform.transform.localPosition + where);
 	}
 #endif
 }

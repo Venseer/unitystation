@@ -9,7 +9,7 @@ using UnityEngine.Rendering;
 public class GameManager : MonoBehaviour
 {
 	public static GameManager Instance;
-	private readonly float cacheTime = 480f;
+	public float RoundTime = 480f;
 	public bool counting;
 	public List<GameObject> Occupations = new List<GameObject>();
 	public float restartTime = 10f;
@@ -53,7 +53,7 @@ public class GameManager : MonoBehaviour
 
 	private void OnLevelFinishedLoading(Scene scene, LoadSceneMode mode)
 	{
-		GetRoundTime = cacheTime;
+		GetRoundTime = RoundTime;
 	}
 
 	public void SyncTime(float currentTime)
@@ -70,7 +70,7 @@ public class GameManager : MonoBehaviour
 
 	public void ResetRoundTime()
 	{
-		GetRoundTime = cacheTime;
+		GetRoundTime = RoundTime;
 		waitForRestart = false;
 		counting = true;
 		restartTime = 10f;
@@ -113,33 +113,30 @@ public class GameManager : MonoBehaviour
 				}
 			}
 		}
-
 	}
 
 	public int GetOccupationsCount(JobType jobType)
 	{
 		int count = 0;
 
-		if (PlayerList.Instance == null || PlayerList.Instance.connectedPlayers.Count == 0)
+		if (PlayerList.Instance == null || PlayerList.Instance.ClientConnectedPlayers.Count == 0)
 		{
 			return 0;
 		}
 
-		foreach (KeyValuePair<string, GameObject> player in PlayerList.Instance.connectedPlayers)
+		for ( var i = 0; i < PlayerList.Instance.ClientConnectedPlayers.Count; i++ )
 		{
-			if (player.Value != null)
+			var player = PlayerList.Instance.ClientConnectedPlayers[i];
+			if ( player.Job == jobType )
 			{
-				PlayerScript mob = player.Value.GetComponent<PlayerScript>();
-				if (mob != null)
-				{
-					if (mob.JobType == jobType)
-					{
-						count++;
-					}
-				}
+				count++;
 			}
 		}
 
+		if ( count != 0 )
+		{
+			Debug.Log($"{jobType} count: {count}");
+		}
 		return count;
 	}
 

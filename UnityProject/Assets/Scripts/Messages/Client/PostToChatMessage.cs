@@ -17,11 +17,10 @@ public class PostToChatMessage : ClientMessage
 		yield return WaitFor(SentBy);
 		if (NetworkObject)
 		{
-			GameObject player = NetworkObject;
-			if (ValidRequest(player))
-			{
-				ChatModifier modifiers = player.GetComponent<PlayerScript>().GetCurrentChatModifiers();
-				ChatEvent chatEvent = new ChatEvent(ChatMessageText, player.name, Channels, modifiers);
+			var player = PlayerList.Instance.Get(NetworkObject);
+			if (ValidRequest(player.GameObject)) {
+				ChatModifier modifiers = player.GameObject.GetComponent<PlayerScript>().GetCurrentChatModifiers();
+				ChatEvent chatEvent = new ChatEvent(ChatMessageText, player.Name, Channels, modifiers);
 				ChatRelay.Instance.AddToChatLogServer(chatEvent);
 			}
 		}
@@ -49,7 +48,7 @@ public class PostToChatMessage : ClientMessage
 	{
 		PlayerScript playerScript = player.GetComponent<PlayerScript>();
 		//Need to add system channel here so player can transmit system level events but not select it in the UI
-		ChatChannel availableChannels = playerScript.GetAvailableChannels() | ChatChannel.System;
+		ChatChannel availableChannels = playerScript.GetAvailableChannelsMask() | ChatChannel.System;
 		if ((availableChannels & Channels) == Channels)
 		{
 			return true;
@@ -59,8 +58,7 @@ public class PostToChatMessage : ClientMessage
 
 	public override string ToString()
 	{
-		return string.Format("[PostToChatMessage SentBy={0} ChatMessageText={1} Channels={2} MessageType={3}]",
-			SentBy, ChatMessageText, Channels, MessageType);
+		return $"[PostToChatMessage ChatMessageText={ChatMessageText} Channels={Channels} MessageType={MessageType}]";
 	}
 
 	public override void Deserialize(NetworkReader reader)

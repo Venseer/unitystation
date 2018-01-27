@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using Tilemaps.Behaviours.Objects;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -33,64 +32,80 @@ public class PoolManager : NetworkBehaviour
 	[Server]
 	public GameObject PoolNetworkInstantiate(GameObject prefab, Vector2 position, Quaternion rotation, Transform parent=null)
 	{
-		bool pooledInstance;
-		
-		GameObject obj = PoolInstantiate(prefab, position, rotation, parent, out pooledInstance);
+		bool isPooled;
 
-		if (!pooledInstance)
+		GameObject tempObject = PoolInstantiate(prefab, position, rotation, parent, out isPooled);
+
+		if (!isPooled)
 		{
-			NetworkServer.Spawn(obj);	
+			NetworkServer.Spawn(tempObject);
 		}
 
-		return obj;
+		return tempObject;
 	}
 
 	/// <summary>
 	///     For non network stuff only! (e.g. bullets)
 	/// </summary>
-	public GameObject PoolClientInstantiate(GameObject prefab, Vector2 position, Quaternion rotation, Transform parent=null)
+	public GameObject PoolClientInstantiate(GameObject prefab, Vector2 position, Quaternion rotation, 
+		Transform parent=null)
 	{
-		bool pooledInstance;	// not used for Client-only instantiation
-		
-		return PoolInstantiate(prefab, position, rotation, parent, out pooledInstance);
+		bool isPooled; // not used for Client-only instantiation
+		return PoolInstantiate(prefab, position, rotation, parent, out isPooled);
 	}
 
 	private GameObject PoolInstantiate(GameObject prefab, Vector2 position, Quaternion rotation, Transform parent, out bool pooledInstance)
 	{
 		GameObject tempObject = null;
-		if (pools.ContainsKey(prefab))
+		if (CanLoadFromPool(prefab))
 		{
-			if (pools[prefab].Count > 0)
+			//pool exists and has unused instances
+			int index = pools[prefab].Count - 1;
+			tempObject = pools[prefab][index];
+			pools[prefab].RemoveAt(index);
+			tempObject.SetActive(true);
+
+			ObjectBehaviour objBehaviour = tempObject.GetComponent<ObjectBehaviour>();
+			if (objBehaviour)
 			{
-				//pool exists and has unused instances
-				int index = pools[prefab].Count - 1;
-				tempObject = pools[prefab][index];
-				pools[prefab].RemoveAt(index);
-				tempObject.SetActive(true);
-
-				ObjectBehaviour objBehaviour = tempObject.GetComponent<ObjectBehaviour>();
-				if (objBehaviour)
-				{
-					objBehaviour.visibleState = true;
-				}
-
-				tempObject.transform.position = position;
-				tempObject.transform.rotation = rotation;
-				tempObject.transform.localScale = prefab.transform.localScale;
-				tempObject.transform.parent = parent;
-
-				pooledInstance = true;
-				
-				return tempObject;
+				objBehaviour.visibleState = true;
 			}
+
+			tempObject.transform.position = position;
+			tempObject.transform.rotation = rotation;
+			tempObject.transform.localScale = prefab.transform.localScale;
+			tempObject.transform.parent = parent;
+			tryInitTransform(tempObject);
+
+			pooledInstance = true;
+			
+			return tempObject;
+		}
+		else
+		{
+			tempObject = Instantiate(prefab, position, rotation, parent);
+			tryInitTransform(tempObject);
+			tempObject.AddComponent<PoolPrefabTracker>().myPrefab = prefab;
+	
+			pooledInstance = false;
+			
+			return tempObject;
 		}
 
-		tempObject = Instantiate(prefab, position, rotation, parent);
-		tempObject.AddComponent<PoolPrefabTracker>().myPrefab = prefab;
-		
-		pooledInstance = false;
-		
-		return tempObject;
+	}
+
+	private static void tryInitTransform(GameObject tempObject)
+	{
+		var cnt = tempObject.GetComponent<CustomNetTransform>();
+		if ( cnt )
+		{
+			cnt.ReInitServerState();
+		}
+	}
+
+	private bool CanLoadFromPool(GameObject prefab)
+	{
+		return pools.ContainsKey(prefab) && pools[prefab].Count > 0;
 	}
 
 	[Server]
@@ -152,7 +167,13 @@ public class PoolManager : NetworkBehaviour
 
 	private void AddToPool(GameObject target)
 	{
-		GameObject prefab = target.GetComponent<PoolPrefabTracker>().myPrefab;
+		var poolPrefabTracker = target.GetComponent<PoolPrefabTracker>();
+		if ( !poolPrefabTracker )
+		{
+			Debug.LogWarning($"PoolPrefabTracker not found on {target}");
+			return;
+		}
+		GameObject prefab = poolPrefabTracker.myPrefab;
 		prefab.transform.position = Vector2.zero;
 
 		if (!pools.ContainsKey(prefab))

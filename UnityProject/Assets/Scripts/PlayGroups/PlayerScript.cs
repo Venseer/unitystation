@@ -3,6 +3,8 @@ using PlayGroups.Input;
 using UI;
 using UnityEngine;
 using UnityEngine.Networking;
+using Facepunch.Steamworks;
+using UnityEngine.Experimental.UIElements;
 
 namespace PlayGroup
 {
@@ -44,14 +46,18 @@ namespace PlayGroup
 
 		public ChatChannel SelectedChannels
 		{
-			get { return selectedChannels & GetAvailableChannels(); }
+			get { return selectedChannels & GetAvailableChannelsMask(); }
 			set { selectedChannels = value; }
 		}
+
+		private static bool verified;
+		private static ulong SteamID;
 
 		public override void OnStartClient()
 		{
 			//Local player is set a frame or two after OnStartClient
 			StartCoroutine(WaitForLoad());
+			Init();
 			base.OnStartClient();
 		}
 
@@ -106,16 +112,7 @@ namespace PlayGroup
 					UIManager.Instance.playerListUIControl.window.SetActive(true);
 				}
 
-				if (!PlayerManager.HasSpawned)
-				{
-					//First
-					CmdTrySetName(PlayerManager.PlayerNameCache);
-				}
-				else
-				{
-					//Manual after respawn
-					CmdSetNameManual(PlayerManager.PlayerNameCache);
-				}
+				CmdTrySetInitialName(PlayerManager.PlayerNameCache);
 
 				PlayerManager.SetPlayerForControl(gameObject);
 
@@ -125,13 +122,32 @@ namespace PlayGroup
 					UIManager.Instance.GetComponent<ControlDisplays>().jobSelectWindow.SetActive(true);
 				}
 				UIManager.SetDeathVisibility(true);
+				// Send request to be authenticated by the server
+				if (Client.Instance != null)
+				{                
+					Debug.Log("Client Requesting Auth");
+					// Generate authentication Ticket
+					var ticket = Client.Instance.Auth.GetAuthSessionTicket();
+					var ticketBinary = ticket.Data;
+					// Send Clientmessage to authenticate
+					RequestAuthMessage.Send(Client.Instance.SteamId, ticketBinary);
+				}
 				//Request sync to get all the latest transform data
 				new RequestSyncMessage().Send();
 				SelectedChannels = ChatChannel.Local;
+
 			}
 			else if (isServer)
 			{
 				playerMove = GetComponent<PlayerMove>();
+								
+				//Add player to player list
+				PlayerList.Instance.Add(new ConnectedPlayer
+				{
+					Connection = connectionToClient,
+					GameObject = gameObject,
+					Job = JobType
+				});
 			}
 		}
 
@@ -152,37 +168,36 @@ namespace PlayGroup
 			}
 		}
 
+		/// <summary>
+		/// Trying to set initial name, if player has none 
+		/// </summary>
 		[Command]
-		private void CmdTrySetName(string name)
+		private void CmdTrySetInitialName(string name)
 		{
+//			Debug.Log($"TrySetName {name}");
 			if (PlayerList.Instance != null)
 			{
-				playerName = PlayerList.Instance.CheckName(name);
+				var player = PlayerList.Instance.Get(connectionToClient);
+				if ( player.HasNoName() )
+				{
+					player.Name = name;
+				}
+				playerName = player.Name;
 			}
-		}
-
-		[Command]
-		private void CmdSetNameManual(string name)
-		{
-			playerName = name;
 		}
 
 		// On playerName variable change across all clients, make sure obj is named correctly
 		// and set in Playerlist for that client
 		public void OnNameChange(string newName)
 		{
-			playerName = newName;
-			gameObject.name = newName;
 			if (string.IsNullOrEmpty(newName))
 			{
 				Debug.LogError("NO NAME PROVIDED!");
 				return;
 			}
-			if (!PlayerList.Instance.connectedPlayers.ContainsKey(newName))
-			{
-				PlayerList.Instance.connectedPlayers.Add(newName, gameObject);
-			}
-			PlayerList.Instance.RefreshPlayerListText();
+//			Debug.Log($"OnNameChange: GOName '{gameObject.name}'->'{newName}'; playerName '{playerName}'->'{newName}'");
+			playerName = newName;
+			gameObject.name = newName;
 		}
 
 		public float DistanceTo(Vector3 position)
@@ -202,8 +217,8 @@ namespace PlayGroup
 		public bool IsInReach(Vector3 position, float interactDist = interactionDistance)
 		{
 			//If click is in diagonal direction, extend reach slightly
-			float distanceX = Mathf.FloorToInt(Mathf.Abs(transform.position.x - position.x));
-			float distanceY = Mathf.FloorToInt(Mathf.Abs(transform.position.y - position.y));
+			int distanceX = Mathf.FloorToInt(Mathf.Abs(transform.position.x - position.x));
+			int distanceY = Mathf.FloorToInt(Mathf.Abs(transform.position.y - position.y));
 			if (distanceX == 1 && distanceY == 1)
 			{
 				return DistanceTo(position) <= interactDist + 0.4f;
@@ -213,7 +228,7 @@ namespace PlayGroup
 			return DistanceTo(position) <= interactDist;
 		}
 
-		public ChatChannel GetAvailableChannels(bool transmitOnly = true)
+		public ChatChannel GetAvailableChannelsMask(bool transmitOnly = true)
 		{
 			PlayerMove pm = gameObject.GetComponent<PlayerMove>();
 			if (pm.isGhost)
@@ -232,19 +247,27 @@ namespace PlayGroup
 			if (CustomNetworkManager.Instance._isServer)
 			{
 				PlayerNetworkActions pna = gameObject.GetComponent<PlayerNetworkActions>();
-				if (pna)
+				if ( pna && pna.SlotNotEmpty("ear") )
 				{
-					EncryptionKeyType key = pna.Inventory["ear"].GetComponent<Headset>().GetComponent<Headset>().EncryptionKey;
-					transmitChannels = transmitChannels | EncryptionKey.Permissions[key];
+					Headset headset = pna.Inventory["ear"].GetComponent<Headset>();
+					if ( headset )
+					{
+						EncryptionKeyType key = headset.EncryptionKey;
+						transmitChannels = transmitChannels | EncryptionKey.Permissions[key];
+					}
 				}
 			}
 			else
 			{
-				GameObject headset = UIManager.InventorySlots.EarSlot.Item;
-				if (headset)
+				GameObject earSlotItem = UIManager.InventorySlots.EarSlot.Item;
+				if ( earSlotItem )
 				{
-					EncryptionKeyType key = headset.GetComponent<Headset>().EncryptionKey;
-					transmitChannels = transmitChannels | EncryptionKey.Permissions[key];
+					Headset headset = earSlotItem.GetComponent<Headset>();
+					if ( headset )
+					{
+						EncryptionKeyType key = headset.EncryptionKey;
+						transmitChannels = transmitChannels | EncryptionKey.Permissions[key];
+					}
 				}
 			}
 

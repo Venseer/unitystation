@@ -8,6 +8,7 @@ namespace UI
 	{
 		public Image throwImage;
 		public Sprite[] throwSprites;
+		public bool azerty; //Hacky fix due to AZERTY keyboard users using Q to go left.
 
 		private void Start()
 		{
@@ -25,9 +26,17 @@ namespace UI
 
 		private void CheckKeyboardInput()
 		{
-			if (Input.GetKeyDown(KeyCode.Q))
+			if (azerty)
 			{
-				Drop();
+				if (Input.GetKeyDown(KeyCode.A))
+				{
+					Drop();
+				}
+			} else {
+				if (Input.GetKeyDown(KeyCode.Q))
+				{
+					Drop();
+				}
 			}
 
 			if (Input.GetKeyDown(KeyCode.X))
@@ -39,7 +48,27 @@ namespace UI
 			{
 				UIManager.Hands.Use();
 			}
-		}
+
+            if (Input.GetKeyDown(KeyCode.Alpha1))
+            {
+                UIManager.Intent.IntentHotkey(0);
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha2))
+            {
+                UIManager.Intent.IntentHotkey(1);
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha3))
+            {
+                UIManager.Intent.IntentHotkey(2);
+            }
+
+            if (Input.GetKeyDown(KeyCode.Alpha4))
+            {
+                UIManager.Intent.IntentHotkey(3);
+            }
+        }
 
 		public void Resist()
 		{

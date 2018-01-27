@@ -80,10 +80,28 @@ namespace Equipment
 			clothingSlots[index].Reference = syncEquipSprites[index];
 		}
 
+		/// Wait until client gains control of this player before proceeding further
+		/// (Could be moved into some more generic place in the future)
+		private IEnumerator WaitUntilInControl(int maxTries = 50)
+		{
+			int tries = 0;
+			while (!PlayerList.Instance.ContainsGameObject(gameObject))
+			{
+				if (tries++ > maxTries)
+				{
+					Debug.LogError($"{this} not in control after {maxTries} tries");
+					yield break;
+				}
+
+				yield return YieldHelper.DeciSecond;
+			}
+		}
+
+
 		public IEnumerator SetPlayerLoadOuts()
 		{
 			//Waiting for player name resolve
-			yield return new WaitForSeconds(0.2f);
+			yield return WaitUntilInControl();
 
 			// Null Job players dont get a loadout
 			if (playerScript.JobType == JobType.NULL)
@@ -205,18 +223,19 @@ namespace Equipment
 		private void SpawnID(JobOutfit outFit)
 		{
 			GameObject idObj;
+			var realName = PlayerList.Instance.Get( gameObject ).Name;
 			if (outFit.jobType == JobType.CAPTAIN)
 			{
-				idObj = ItemFactory.Instance.SpawnIDCard(IDCardType.captain, outFit.jobType, outFit.allowedAccess, name, transform.parent);
+				idObj = ItemFactory.Instance.SpawnIDCard(IDCardType.captain, outFit.jobType, outFit.allowedAccess, realName, transform.parent);
 			}
 			else if (outFit.jobType == JobType.HOP || outFit.jobType == JobType.HOS || outFit.jobType == JobType.CMO || outFit.jobType == JobType.RD ||
 			         outFit.jobType == JobType.CHIEF_ENGINEER)
 			{
-				idObj = ItemFactory.Instance.SpawnIDCard(IDCardType.command, outFit.jobType, outFit.allowedAccess, name, transform.parent);
+				idObj = ItemFactory.Instance.SpawnIDCard(IDCardType.command, outFit.jobType, outFit.allowedAccess, realName, transform.parent);
 			}
 			else
 			{
-				idObj = ItemFactory.Instance.SpawnIDCard(IDCardType.standard, outFit.jobType, outFit.allowedAccess, name, transform.parent);
+				idObj = ItemFactory.Instance.SpawnIDCard(IDCardType.standard, outFit.jobType, outFit.allowedAccess, realName, transform.parent);
 			}
 
 			SetItem("id", idObj);

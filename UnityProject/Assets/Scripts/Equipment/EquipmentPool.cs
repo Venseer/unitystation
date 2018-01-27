@@ -54,10 +54,8 @@ namespace Equipment
 				Instance.equipPools.Add(ownerId, newPool.GetComponent<ObjectPool>());
 				Instance.equipPools[ownerId].AddGameObject(gObj);
 			}
-
-			//			Debug.LogFormat("Added {1}({2}) to {0}'s pool.size={3}",
-			//			playerName, gObj.name, gObj.GetComponent<ItemAttributes>().itemName, 
-			//			Instance.equipPools[playerName].currentObjects.Count);
+//			Debug.LogFormat($"Added {gObj.name}({gObj.GetComponent<ItemAttributes>().itemName}) " +
+//			                $"to {playerName}'s pool.size={Instance.equipPools[ownerId].currentObjects.Count}");
 		}
 
 		/// Disposing of objects that aren't supposed to be dropped on the ground
@@ -66,6 +64,7 @@ namespace Equipment
 			NetworkInstanceId ownerId = player.GetComponent<NetworkIdentity>().netId;
 			if (!Instance.equipPools.ContainsKey(ownerId))
 			{
+				Debug.LogWarning($"{PlayerList.Instance.Get(player)} doesn't have item {gObj.name}, nothing to dispose of");
 				return;
 			}
 			Instance.equipPools[ownerId].DestroyGameObject(gObj);
@@ -78,7 +77,7 @@ namespace Equipment
 		///When dropping items etc, remove them from the player equipment pool and place in scene
 		public static void DropGameObject(GameObject player, GameObject gObj)
 		{
-			DropGameObject(player, gObj, PlayerList.Instance.connectedPlayers[player.name].transform.position);
+			DropGameObject(player, gObj, player.transform.position);
 		}
 
 		///When dropping items etc, remove them from the player equipment pool and place in scene
@@ -90,7 +89,13 @@ namespace Equipment
 		//When placing items at a position etc also removes them from the player equipment pool and places it in scene
 		public static void DropGameObject(GameObject player, GameObject gObj, Vector3 pos)
 		{
-			NetworkInstanceId ownerId = player.GetComponent<NetworkIdentity>().netId;
+			NetworkIdentity networkIdentity = player.GetComponent<NetworkIdentity>();
+			if ( !networkIdentity )
+			{
+				Debug.LogWarning("Unable to drop as NetIdentity is gone");
+				return;
+			}
+			NetworkInstanceId ownerId = networkIdentity.netId;
 			if (!Instance.equipPools.ContainsKey(ownerId))
 			{
 				return;
