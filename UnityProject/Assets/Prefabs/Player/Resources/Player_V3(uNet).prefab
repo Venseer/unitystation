@@ -152,6 +152,7 @@ GameObject:
   - component: {fileID: 114285504268110804}
   - component: {fileID: 114803877374308862}
   - component: {fileID: 114449635359748350}
+  - component: {fileID: 50851566022184656}
   m_Layer: 8
   m_Name: Player_V3(uNet)
   m_TagString: Untagged
@@ -972,6 +973,26 @@ MeshFilter:
   m_PrefabInternal: {fileID: 100100000}
   m_GameObject: {fileID: 1894933337466704}
   m_Mesh: {fileID: 0}
+--- !u!50 &50851566022184656
+Rigidbody2D:
+  serializedVersion: 4
+  m_ObjectHideFlags: 1
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1133514949248654}
+  m_BodyType: 1
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDrag: 0
+  m_AngularDrag: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_Interpolate: 1
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
 --- !u!61 &61260641920390224
 BoxCollider2D:
   m_ObjectHideFlags: 1
@@ -1551,6 +1572,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerMove: {fileID: 114792299177679754}
+  matrixLayerMask:
+    serializedVersion: 2
+    m_Bits: 17170944
   pullingObject: {fileID: 0}
 --- !u!114 &114626459693876662
 MonoBehaviour:
@@ -1756,6 +1780,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 57ce4d8a508787441857fade34082bd9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  hitCheckLayers:
+    serializedVersion: 2
+    m_Bits: 17039872
   allowInput: 1
   diagonalMovement: 1
   azerty: 0

@@ -1,4 +1,5 @@
-﻿using Tilemaps.Behaviours.Layers;
+﻿using PlayGroup;
+using Tilemaps.Behaviours.Layers;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -37,6 +38,15 @@ namespace Tilemaps.Behaviours.Objects
 			layer = parent.GetComponentInChildren<ObjectLayer>();
 			Matrix = parent.GetComponent<Matrix>();
 			transform.parent = layer.transform; 
+			Register();
+		}
+
+		//Is not network synced, is used for prediction on local client when walking between matricies
+		public void SetParentOnLocal(Transform newParent){
+			Unregister();
+			layer = newParent.GetComponentInChildren<ObjectLayer>();
+			Matrix = newParent.GetComponent<Matrix>();
+			transform.parent = layer.transform;
 			Register();
 		}
 
