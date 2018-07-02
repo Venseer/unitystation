@@ -38,10 +38,19 @@ public class PlayerList : NetworkBehaviour
 		if ( Instance == null )
 		{
 			Instance = this;
-		}
+            Instance.ResetSyncedState();
+        }
 		else
 		{
 			Destroy(gameObject);
+		}
+	}
+
+	/// Allowing players to sync after round restart
+	public void ResetSyncedState() {
+		for ( var i = 0; i < values.Count; i++ ) {
+			var player = values[i];
+			player.Synced = false;
 		}
 	}
 
