@@ -12,9 +12,9 @@ public abstract class GameMessageBase : MessageBase
 
 	protected IEnumerator WaitFor(NetworkInstanceId id)
 	{
-		if (id.IsEmpty()) 
+		if (id.IsEmpty())
 		{
-			Debug.LogWarning($"{this} tried to wait on an empty (0) id");
+			Logger.LogWarning($"{this} tried to wait on an empty (0) id", Category.NetMessage);
 			yield break;
 		}
 
@@ -23,7 +23,7 @@ public abstract class GameMessageBase : MessageBase
 		{
 			if (tries++ > 10)
 			{
-				Debug.LogWarning($"{this} could not find object with id {id}");
+				Logger.LogWarning($"{this} could not find object with id {id}", Category.NetMessage);
 				yield break;
 			}
 
@@ -52,7 +52,11 @@ public abstract class GameMessageBase : MessageBase
 	{
 		for (int i = 0; i < ids.Length; i++)
 		{
-			GameObject obj = ClientScene.FindLocalObject(ids[i]);
+			var netId = ids[i];
+			if ( netId == NetworkInstanceId.Invalid ) {
+				continue;
+			}
+			GameObject obj = ClientScene.FindLocalObject(netId);
 			if (obj == null)
 			{
 				return false;

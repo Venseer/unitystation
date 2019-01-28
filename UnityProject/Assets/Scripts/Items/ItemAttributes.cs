@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using UI;
 using UnityEngine;
 using UnityEngine.Networking;
 using Random = System.Random;
@@ -17,13 +16,24 @@ public class ItemAttributes : NetworkBehaviour
 	private static string[] hierList = { };
 
 	//on-player references
-	private static readonly string[] onPlayer =
-	{
-		"mob/uniform", "mob/underwear", "mob/ties", "mob/back", "mob/belt_mirror", "mob/belt", "mob/eyes", "mob/ears", "mob/hands", "mob/feet", "mob/head",
-		"mob/mask", "mob/neck", "mob/suit"
+	private static readonly string[] onPlayer = {
+		"mob/uniform",
+		"mob/underwear",
+		"mob/ties",
+		"mob/back",
+		"mob/belt_mirror",
+		"mob/belt",
+		"mob/eyes",
+		"mob/ears",
+		"mob/hands",
+		"mob/feet",
+		"mob/head",
+		"mob/mask",
+		"mob/neck",
+		"mob/suit"
 	};
 
-//	public ClothEnum cloth;
+	//	public ClothEnum cloth;
 	private int clothingOffset = -1;
 	public int clothingReference = -1;
 	private string desc;
@@ -57,7 +67,7 @@ public class ItemAttributes : NetworkBehaviour
 	// item name and description.
 	public string itemName;
 
-	private ItemType itemType = ItemType.None;
+	public ItemType itemType = ItemType.None;
 	private SpriteType masterType;
 	private new string name;
 
@@ -68,19 +78,24 @@ public class ItemAttributes : NetworkBehaviour
 	public ItemType type;
 
 	/// throw-related fields
-	[TooltipAttribute("How painful it is when someone throws it at you")]
+	[TooltipAttribute("How painful it is when someone throws it at you")] [Range(0,100)]
 	public float throwDamage = 2;
 	[TooltipAttribute("How many tiles to move per 0.1s when being thrown")]
 	public float throwSpeed = 2;
 	[TooltipAttribute("Max throw distance")]
 	public float throwRange = 7;
-	[TooltipAttribute("Damage when we click someone with harm intent")]
+	[TooltipAttribute("Damage when we click someone with harm intent")] [Range(0, 100)]
 	public float hitDamage = 2;
 	[TooltipAttribute("Sound to be played when we click someone with harm intent")]
 	public string hitSound = "GenericHit";
 
+	///<Summary>
+	/// Can this item protect humans against spess?
+	///</Summary>
+	public bool evaCapable { get; private set; }
+
 	public List<string> attackVerb = new List<string>();
-	private static readonly char[] ListSplitters = new[]{',', ' '};
+	private static readonly char[] ListSplitters = new [] { ',', ' ' };
 
 	public override void OnStartClient()
 	{
@@ -90,14 +105,13 @@ public class ItemAttributes : NetworkBehaviour
 
 	private IEnumerator WaitForLoad()
 	{
-//		yield return new WaitForSeconds(2f);
+		//		yield return new WaitForSeconds(2f);
 		ConstructItem(hierarchy);
 		yield return null;
 	}
 
-
 	//    Enum test:
-	//    
+	//
 	//    private void OnEnable()
 	//    {
 	//        if (hierarchy == null || hierarchy.Equals(""))
@@ -107,13 +121,15 @@ public class ItemAttributes : NetworkBehaviour
 	//        ConstructItem(hierarchy);
 	//    }
 
-	public float? TryParseFloat(string attr) {
+	public float? TryParseFloat(string attr)
+	{
 		float i;
-		return float.TryParse( tryGetAttr(attr), out i ) ? (float?) i : null;
+		return float.TryParse(tryGetAttr(attr), out i) ? (float?)i : null;
 	}
-	public List<string> TryParseList(string attr) {
+	public List<string> TryParseList(string attr)
+	{
 		var list = new List<string>();
-		list.AddRange(tryGetAttr(attr).Trim().Replace( "list(", "" ).Replace( ")", "" ).Split( ListSplitters, StringSplitOptions.RemoveEmptyEntries ));
+		list.AddRange(tryGetAttr(attr).Trim().Replace("list(", "").Replace(")", "").Split(ListSplitters, StringSplitOptions.RemoveEmptyEntries));
 		return list;
 	}
 
@@ -132,13 +148,13 @@ public class ItemAttributes : NetworkBehaviour
 		//init datafiles
 		if (!dmi)
 		{
-			//				Debug.Log("Item DMI data loading...");
-			dmi = Resources.Load("DmiIconData") as DmiIconData;
+			//				Logger.Log("Item DMI data loading...");
+			dmi = Resources.Load("DmiIconData")as DmiIconData;
 		}
 		if (!dm)
 		{
-			//				Debug.Log("Item DM data loading...");
-			dm = Resources.Load("DmObjectData") as DmObjectData;
+			//				Logger.Log("Item DM data loading...");
+			dm = Resources.Load("DmObjectData")as DmObjectData;
 		}
 
 		//raw dictionary of attributes
@@ -155,13 +171,13 @@ public class ItemAttributes : NetworkBehaviour
 		icon_state = tryGetAttr("icon_state");
 		item_color = tryGetAttr("item_color"); //also a state
 		item_state = tryGetAttr("item_state");
-		string[] states = {icon_state, item_color, item_state};
+		string[] states = { icon_state, item_color, item_state };
 
-		throwDamage = TryParseFloat( "throwforce" ) ?? throwDamage;
-		throwSpeed = TryParseFloat( "throw_speed" )  ?? throwSpeed;
-		throwRange = TryParseFloat( "throw_range" ) ?? throwRange;
-		hitDamage = TryParseFloat( "force" ) ?? hitDamage;
-		attackVerb = TryParseList( "attack_verb" ) ?? attackVerb;
+		throwDamage = TryParseFloat("throwforce") ?? throwDamage;
+		throwSpeed = TryParseFloat("throw_speed") ?? throwSpeed;
+		throwRange = TryParseFloat("throw_range") ?? throwRange;
+		hitDamage = TryParseFloat("force") ?? hitDamage;
+		attackVerb = TryParseList("attack_verb") ?? attackVerb;
 
 		masterType = getMasterType(hier); // aka SpriteType
 		itemType = getItemType(hier, getInvIconPrefix(masterType));
@@ -192,19 +208,34 @@ public class ItemAttributes : NetworkBehaviour
 		spriteType = masterType;
 		GetComponentInChildren<SpriteRenderer>().sprite = stateSprite;
 
-		//			Debug.Log(name + " size=" + size + " type=" + type + " spriteType=" 
-		//			          + spriteType + " (" + desc + ") : " 
-		//			          + icon_state + " / " + item_state + " / C: " + clothingReference 
+		//			Logger.Log(name + " size=" + size + " type=" + type + " spriteType="
+		//			          + spriteType + " (" + desc + ") : "
+		//			          + icon_state + " / " + item_state + " / C: " + clothingReference
 		//			          + ", L: " + inHandReferenceLeft + ", R: " + inHandReferenceRight + ", I: " + inventoryIcon.icon + '\n'
 		//			          +	dmDic.Keys.Aggregate("", (current, key) => current + (key + ": ") + dmDic[key] + "\n"));
+		CheckEvaCapatibility();
+	}
+
+	private void CheckEvaCapatibility()
+	{
+		if (hier.Contains("/obj/item/clothing/head/helmet/space/hardsuit/") ||
+			hier.Contains("/obj/item/clothing/suit/space/hardsuit/"))
+		{
+			evaCapable = true;
+		}
+		else
+		{
+			evaCapable = false;
+		}
 	}
 
 	private static Sprite tryGetStateSprite(DmiIcon dmiIcon, string icon_state)
 	{
 		if (dmiIcon == null || dmiIcon.getName().Equals(""))
 		{
-			Debug.Log($"DmiIcon '{dmiIcon}' is null, unable to get state '{icon_state}'");
-			return new Sprite();
+
+			Logger.Log($"DmiIcon '{dmiIcon}' is null, unable to get state '{icon_state}'", Category.DmMetadata);
+			return null;
 		}
 
 		DmiState iState = dmiIcon.getState(icon_state);
@@ -212,16 +243,26 @@ public class ItemAttributes : NetworkBehaviour
 		{
 			return dmiIcon.spriteSheet[iState.offset];
 		}
-		Debug.Log($"Failed to find inventory sprite '{icon_state}' in icon '{dmiIcon.icon}'");
-		return new Sprite();
+
+		Logger.Log($"Failed to find inventory sprite '{icon_state}' in icon '{dmiIcon.icon}'", Category.DmMetadata);
+		return null;
 	}
 
+	[ContextMenu("GetItemInfo")]
+	private void DebugInfo()
+	{
+		//Use this method to retrieve item info at runtime (right click the component from editor)
+		//	Debug.Log(getItemDebugInfo());
+		Debug.Log("hier: " + hier);
+		Debug.Log("is server: " + isServer);
+		Debug.Log("is eva capable: " + evaCapable);
+	}
 	private string getItemDebugInfo()
 	{
 		return string.Format(
 			$"name={name}, type={itemType}, spriteType={spriteType} ({desc}) : {icon_state} / {item_state} / " +
 			$"C: {clothingReference}, L: {inHandLeft}, R: {inHandRight}, I: {inventoryIcon.icon}{'\n'}" +
-			$"{dmDic.Keys.Aggregate("", (current, key) => current + key + ": " + dmDic[key] + "\n")}" );
+			$"{dmDic.Keys.Aggregate("", (current, key) => current + key + ": " + dmDic[key] + "\n")}");
 	}
 
 	private static SpriteType getMasterType(string hs)
@@ -256,7 +297,7 @@ public class ItemAttributes : NetworkBehaviour
 		{
 			return dmDic[key];
 		}
-		//			Debug.Log("tryGetAttr fail using key: " + key);
+		//			Logger.Log("tryGetAttr fail using key: " + key);
 		return "";
 	}
 
@@ -265,7 +306,7 @@ public class ItemAttributes : NetworkBehaviour
 		return dm != null && dmi != null;
 	}
 
-	private /*static*/ DmiIcon tryGetInventoryIcon( /*DmiIconData dmi, string[] invSheetPaths, string icon = ""*/)
+	private /*static*/ DmiIcon tryGetInventoryIcon( /*DmiIconData dmi, string[] invSheetPaths, string icon = ""*/ )
 	{
 		//determining invIcon
 		for (int i = 0; i < invSheetPaths.Length; i++)
@@ -273,24 +314,25 @@ public class ItemAttributes : NetworkBehaviour
 			string iconPath = DmiIconData.getIconPath(invSheetPaths[i]); //add extension junk
 			if (!iconPath.Equals("") && DmiIconData.Data.ContainsKey(iconPath) && icon.Equals(""))
 			{
-				//					Debug.Log(name + ": iSheet = dmi.DataHier[" + iconPath +"] = " + dmi.Data[iconPath]);
+				//					Logger.Log(name + ": iSheet = dmi.DataHier[" + iconPath +"] = " + dmi.Data[iconPath]);
 				return DmiIconData.Data[iconPath];
 			}
 		}
 
 		if (!icon.Equals(""))
 		{
-			//				Debug.Log(name + ": iSheet = dmi.DataIcon["+icon+"] = "+iSheet);
+			//				Logger.Log(name + ": iSheet = dmi.DataIcon["+icon+"] = "+iSheet);
 			return DmiIconData.Data[icon];
 		}
 		//pretty bad choice, should use this only as last resort as it's usually pretty inaccurate
 		DmiIcon invIcon = dmi.getIconByState(icon_state);
 		if (invIcon != null)
 		{
-			Debug.Log($"{name} is doing bad dmi.getIconByState({icon_state}) = {invIcon.icon}");
+
+			Logger.Log($"{name} is doing bad dmi.getIconByState({icon_state}) = {invIcon.icon}", Category.DmMetadata);
 			return invIcon;
 		}
-		//			Debug.LogError();
+		//			Logger.LogError();
 		return new DmiIcon();
 	}
 
@@ -310,7 +352,7 @@ public class ItemAttributes : NetworkBehaviour
 			}
 		}
 
-		//Debug.LogError("No clothing offset found!  ClothHier=" + onPlayerClothSheetHier[0] + ", " + getItemDebugInfo());
+		//Logger.LogError("No clothing offset found!  ClothHier=" + onPlayerClothSheetHier[0] + ", " + getItemDebugInfo());
 		return -1;
 	}
 
@@ -318,7 +360,7 @@ public class ItemAttributes : NetworkBehaviour
 	{
 		if (item_state.Equals(""))
 		{
-			return new[] {-1, -1};
+			return new [] {-1, -1 };
 		}
 
 		string searchString = getMasterTypeHandsString(masterType);
@@ -327,7 +369,7 @@ public class ItemAttributes : NetworkBehaviour
 
 		DmiState stateRH = dmi.searchStateInIconShallow(item_state, "mob/inhands/" + searchString + "_righthand");
 
-		return new[] {stateLH == null ? -1 : stateLH.offset, stateRH == null ? -1 : stateRH.offset};
+		return new [] { stateLH == null ? -1 : stateLH.offset, stateRH == null ? -1 : stateRH.offset };
 	}
 
 	private static string getInvIconPrefix(SpriteType st)
@@ -347,27 +389,27 @@ public class ItemAttributes : NetworkBehaviour
 		switch (type)
 		{
 			case ItemType.Belt:
-				return new[] {p + "belts"};
+				return new [] { p + "belts" };
 			case ItemType.Back:
-				return new[] {p + "cloaks"};
+				return new [] { "obj/storage" };
 			case ItemType.Glasses:
-				return new[] {p + "glasses"};
+				return new [] { p + "glasses" };
 			case ItemType.Gloves:
-				return new[] {p + "gloves"};
+				return new [] { p + "gloves" };
 			case ItemType.Hat:
-				return new[] {p + "hats"};
+				return new [] { p + "hats" };
 			case ItemType.Mask:
-				return new[] {p + "masks"};
+				return new [] { p + "masks" };
 			case ItemType.Shoes:
-				return new[] {p + "shoes"};
+				return new [] { p + "shoes" };
 			case ItemType.Suit:
-				return new[] {p + "suits"};
+				return new [] { p + "suits" };
 			case ItemType.Neck:
-				return new[] {p + "ties", p + "neck"};
+				return new [] { p + "ties", p + "neck" };
 			case ItemType.Uniform:
-				return new[] {p + "uniforms"};
+				return new [] { p + "uniforms" };
 			default:
-				return new[] {""};
+				return new [] { "" };
 		}
 	}
 
@@ -377,29 +419,29 @@ public class ItemAttributes : NetworkBehaviour
 		switch (type)
 		{
 			case ItemType.Belt:
-				return new[] {p + "belt", p + "belt_mirror"};
+				return new [] { p + "belt", p + "belt_mirror" };
 			case ItemType.Back:
-				return new[] {p + "back"};
+				return new [] { p + "back" };
 			case ItemType.Glasses:
-				return new[] {p + "eyes"};
+				return new [] { p + "eyes" };
 			case ItemType.Gloves:
-				return new[] {p + "hands"};
+				return new [] { p + "hands" };
 			case ItemType.Hat:
-				return new[] {p + "head"};
+				return new [] { p + "head" };
 			case ItemType.Ear:
-				return new[] {p + "ears"};
+				return new [] { p + "ears" };
 			case ItemType.Mask:
-				return new[] {p + "mask"};
+				return new [] { p + "mask" };
 			case ItemType.Shoes:
-				return new[] {p + "feet"};
+				return new [] { p + "feet" };
 			case ItemType.Suit:
-				return new[] {p + "suit"};
+				return new [] { p + "suit" };
 			case ItemType.Neck:
-				return new[] {p + "ties", p + "neck"};
+				return new [] { p + "ties", p + "neck" };
 			case ItemType.Uniform:
-				return new[] {p + "uniform"};
+				return new [] { p + "uniform" };
 			default:
-				return new[] {""};
+				return new [] { "" };
 		}
 	}
 
@@ -407,14 +449,14 @@ public class ItemAttributes : NetworkBehaviour
 	{
 		if (hierList.Length == 0)
 		{
-			TextAsset asset = Resources.Load(Path.Combine("metadata", "hier")) as TextAsset;
+			TextAsset asset = Resources.Load(Path.Combine("metadata", "hier"))as TextAsset;
 			if (asset != null)
 			{
 				List<string> objects = asset.text.Split('\n').ToList();
 				objects.RemoveAll(x => !x.Contains("cloth"));
 				hierList = objects.ToArray();
 			}
-			//        Debug.Log("HierList loaded. size=" + hierList.Length);
+			//        Logger.Log("HierList loaded. size=" + hierList.Length);
 		}
 		if (hierarchy.Length == 0 && spriteType == SpriteType.Clothing)
 		{
@@ -424,17 +466,26 @@ public class ItemAttributes : NetworkBehaviour
 
 	private static ItemType getItemType(string s, string cutOff = "")
 	{
-		//			Debug.Log("getItemType for "+ s);
+		//	Logger.Log("getItemType for " + s);
 		string sCut;
 		if (!cutOff.Equals("") && s.StartsWith(cutOff))
 		{
 			sCut = s.Substring(cutOff.Length + 1).Split('/')[0];
-			//				Debug.Log("sCut = "+ sCut);
+			//				Logger.Log("sCut = "+ sCut);
 		}
 		else
 		{
-			sCut = s;
+			if (s.Contains("storage"))
+			{
+				sCut = "back";
+			}
+			else
+			{
+				//All other unknowns:
+				sCut = s;
+			}
 		}
+
 		switch (sCut)
 		{
 			case "uniform":
@@ -477,7 +528,7 @@ public class ItemAttributes : NetworkBehaviour
 				return ItemType.Suit;
 			default:
 				//GetItemType will be called several times on failure, with different string parameters
-//				Debug.Log("Could not find item type for " + sCut + ". Will attempt fallbacks if any exist.");
+				//				Logger.Log("Could not find item type for " + sCut + ". Will attempt fallbacks if any exist.");
 				return ItemType.None;
 		}
 	}
@@ -551,7 +602,7 @@ public class ItemAttributes : NetworkBehaviour
 		return i.ToString();
 	}
 
-	public void OnMouseEnter()
+	public void OnHoverStart()
 	{
 		// Show the parenthesis for an item's description only if the item has a description
 		if (itemDescription.Length > 0)
@@ -564,7 +615,7 @@ public class ItemAttributes : NetworkBehaviour
 		}
 	}
 
-	public void OnMouseExit()
+	public void OnHoverEnd()
 	{
 		UIManager.SetToolTip = "";
 	}
@@ -576,7 +627,7 @@ public class ItemAttributes : NetworkBehaviour
 	}
 
 	// When right clicking on an item, examine the item
-	public void OnMouseOver()
+	public void OnHover()
 	{
 		if (Input.GetMouseButtonDown(1))
 		{
@@ -584,11 +635,12 @@ public class ItemAttributes : NetworkBehaviour
 		}
 	}
 
+	[ContextMethod("Examine", "Magnifying_glass")]
 	public void OnExamine()
 	{
 		if (!string.IsNullOrEmpty(itemDescription))
 		{
-			UIManager.Chat.AddChatEvent(new ChatEvent(itemDescription, ChatChannel.Examine));
+			ChatRelay.Instance.AddToChatLogClient(itemDescription, ChatChannel.Examine);
 		}
 	}
 }

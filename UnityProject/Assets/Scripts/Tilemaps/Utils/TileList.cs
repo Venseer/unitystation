@@ -1,17 +1,27 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Tilemaps.Behaviours.Meta;
-using Tilemaps.Behaviours.Objects;
 using UnityEngine;
 
-namespace Tilemaps.Utils
-{
+
 	public class TileList
 	{
 		private readonly Dictionary<Vector3Int, List<RegisterTile>> _objects =
 			new Dictionary<Vector3Int, List<RegisterTile>>();
 
-		public List<RegisterTile> AllObjects => _objects.Values.SelectMany(x => x).ToList();
+		private static readonly List<RegisterTile> emptyList = new List<RegisterTile>();
+
+		public List<RegisterTile> AllObjects {
+			get {
+				List<RegisterTile> list = new List<RegisterTile>();
+				foreach ( List<RegisterTile> x in _objects.Values ) {
+					for ( var i = 0; i < x.Count; i++ ) {
+						list.Add( x[i] );
+					}
+				}
+
+				return list;
+			}
+		}
 
 		public void Add(Vector3Int position, RegisterTile obj)
 		{
@@ -28,17 +38,35 @@ namespace Tilemaps.Utils
 
 		public List<RegisterTile> Get(Vector3Int position)
 		{
-			return _objects.ContainsKey(position) ? _objects[position] : new List<RegisterTile>();
+			return _objects.ContainsKey(position) ? _objects[position] : emptyList;
 		}
 
-		public List<RegisterTile> Get(Vector3Int position, ObjectType type)
-		{
-			return Get(position).Where(x => x.ObjectType == type).ToList();
+		public List<RegisterTile> Get(Vector3Int position, ObjectType type) {
+			List<RegisterTile> list = new List<RegisterTile>();
+			List<RegisterTile> xes = Get( position );
+			for ( var i = 0; i < xes.Count; i++ ) {
+				RegisterTile x = xes[i];
+				if ( x.ObjectType == type ) {
+					list.Add( x );
+				}
+			}
+
+			return list;
 		}
 
-		public List<T> Get<T>(Vector3Int position) where T : RegisterTile
-		{
-			return Get(position).OfType<T>().ToList();
+		public List<T> Get<T>(Vector3Int position) where T : RegisterTile {
+
+			List<RegisterTile> tiles = Get( position );
+
+			List<T> list = new List<T>();
+			for ( var i = 0; i < tiles.Count; i++ ) {
+				T unknown = tiles[i] as T;
+				if ( tiles[i] != null ) {
+					list.Add( unknown );
+				}
+			}
+
+			return list;
 		}
 
 		public RegisterTile GetFirst(Vector3Int position)
@@ -66,4 +94,3 @@ namespace Tilemaps.Utils
 			}
 		}
 	}
-}

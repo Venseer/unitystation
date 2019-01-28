@@ -1,6 +1,5 @@
 ﻿using System.ComponentModel;
 using UnityEngine;
-using Util;
 
 /// all server only
 public class RadarEntry : DynamicEntry {
@@ -49,7 +48,7 @@ public class RadarEntry : DynamicEntry {
 			}
 		}
 
-//		Debug.Log( $"ItemEntry: Init success! Prefab={Prefab}, ItemName={itemAttributes.name}, ItemIcon={itemAttributes.gameObject.name}" );
+//		Logger.Log( $"ItemEntry: Init success! Prefab={Prefab}, ItemName={itemAttributes.name}, ItemIcon={itemAttributes.gameObject.name}" );
 	}
 }
 
@@ -62,5 +61,7 @@ public enum MapIconType {
 [Description("MapIcons16x16_5")] Unknown=5,
 [Description("MapIcons16x16_9")] Airlock=9,
 [Description("MapIcons16x16_10")] Singularity=10,
-[Description("emoji_27")] Clown=16,
+[Description("icons/emoji_27")] Clown=16,
+[Description("icons/emoji_25")] Human=17,
+[Description("icons/emoji_9")] Ian=18,
 }

@@ -1,56 +1,48 @@
-﻿using Cupboards;
-using Tilemaps.Behaviours.Objects;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Networking;
 
-namespace Objects
-{
-	public class ClosetHealthBehaviour : HealthBehaviour
+
+	public class ClosetHealthBehaviour : NetworkBehaviour
 	{
 		private ClosetControl closetControl;
 		private Collider2D[] colliders;
-		private PushPull objectActions;
+//		private PushPull objectActions;
 		private RegisterCloset registerTile;
 
 		private void Awake()
 		{
 			colliders = GetComponents<Collider2D>();
 			registerTile = GetComponent<RegisterCloset>();
-			objectActions = GetComponent<PushPull>();
+//			objectActions = GetComponent<PushPull>();
 			closetControl = GetComponent<ClosetControl>();
 		}
 
-		protected override void OnDeathActions()
-		{
-			if (isServer)
-			{
-				ServerDeathActions();
-			}
-		}
+		//FIXME: this class no longer derives from LivingHealthBehaviour as it is not
+		// a living thing. A new damage system is required for non living objects
 
-		public override void Interact(GameObject originator, Vector3 position, string hand)
-		{
-			if (closetControl.IsClosed)
-			{
-				base.Interact(originator, position, hand);
-			}
-		}
+		// protected override void OnDeathActions()
+		// {
+		// 	if (isServer)
+		// 	{
+		// 		ServerDeathActions();
+		// 	}
+		// }
 
-		[Server]
-		private void ServerDeathActions()
-		{
-			//            disableInteraction();
-			openCloset();
-			RpcClientDeathActions();
-		}
+		// [Server]
+		// private void ServerDeathActions()
+		// {
+		// 	//            disableInteraction();
+		// 	openCloset();
+		// 	RpcClientDeathActions();
+		// }
 
-		[ClientRpc]
-		private void RpcClientDeathActions()
-		{
-			disableInteraction(); //todo: refactor to use interaction bool w/ server validations
-			playDeathSound();
-			rotateSprites();
-		}
+		// [ClientRpc]
+		// private void RpcClientDeathActions()
+		// {
+		// 	disableInteraction(); //todo: refactor to use interaction bool w/ server validations
+		// 	playDeathSound();
+		// 	rotateSprites();
+		// }
 
 		private void disableInteraction()
 		{
@@ -59,10 +51,10 @@ namespace Objects
 				colliders[i].enabled = false;
 			}
 
-			objectActions.BreakPull();
+//			objectActions.BreakPull();
 			registerTile.IsClosed = false;
-			objectActions.allowedToMove = false;
-			objectActions.isPushable = false;
+//			objectActions.allowedToMove = false;
+//			objectActions.isPushable = false;
 		}
 
 		private void playDeathSound()
@@ -83,4 +75,3 @@ namespace Objects
 			transform.Rotate(0, 0, 90);
 		}
 	}
-}

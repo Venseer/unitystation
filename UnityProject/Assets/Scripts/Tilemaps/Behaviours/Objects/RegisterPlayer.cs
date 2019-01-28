@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Tilemaps.Behaviours.Objects
-{
+
 	[ExecuteInEditMode]
 	public class RegisterPlayer : RegisterTile
 	{
@@ -11,5 +10,8 @@ namespace Tilemaps.Behaviours.Objects
 		{
 			return !IsBlocking;
 		}
+
+		public override bool IsPassable( Vector3Int from ) {
+			return IsPassable();
+		}
 	}
-}

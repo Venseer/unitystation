@@ -1,5 +1,4 @@
 ﻿using System.Collections.Generic;
-using AccessType;
 using UnityEngine;
 
 public class ItemFactory : MonoBehaviour
@@ -12,6 +11,8 @@ public class ItemFactory : MonoBehaviour
 	*/
 
 	private GameObject idCard { get; set; }
+
+	public GameObject paper { get; set; }
 
 	private void Awake()
 	{
@@ -31,6 +32,7 @@ public class ItemFactory : MonoBehaviour
 		Instance.someItem = Resources.Load("SomeItem") as GameObject;
 		*/
 		idCard = Resources.Load("ID") as GameObject;
+		paper = Resources.Load("Paper") as GameObject;
 		LoadFoodResources();
 	}
 
@@ -88,7 +90,7 @@ public class ItemFactory : MonoBehaviour
 		}
 		else
 		{
-			Debug.LogError("Food prefab not added to ItemFactory: " + mealPrefab.name);
+			Logger.LogError("Food prefab not added to ItemFactory: " + mealPrefab.name,Category.ItemSpawn);
 		}
 
 		return mealObj;

@@ -3,26 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-[Serializable]
-public class SoundEntry
-{
-	public string name;
-	public AudioSource source;
-}
-
 public class SoundManager : MonoBehaviour
 {
 	private static SoundManager soundManager;
 
 	private readonly Dictionary<string, AudioSource> sounds = new Dictionary<string, AudioSource>();
 
-	public AudioSource[] ambientTracks;
+	public List<AudioSource> ambientTracks = new List<AudioSource>();
 
 	// Use this for initialization
 	//public AudioSource[] sounds;
-	public AudioSource[] musicTracks;
+	public List<AudioSource> musicTracks = new List<AudioSource>();
 
-	public List<SoundEntry> soundsList = new List<SoundEntry>();
 	public int ambientPlaying { get; private set; }
 
 	public static SoundManager Instance
@@ -32,14 +24,16 @@ public class SoundManager : MonoBehaviour
 			if (!soundManager)
 			{
 				soundManager = FindObjectOfType<SoundManager>();
-				soundManager.Init();
 			}
 
 			return soundManager;
 		}
 	}
 
-	public AudioSource this[string key]
+	[Range(0f, 1f)]
+	public float MusicVolume = 1;
+
+	public AudioSource this [string key]
 	{
 		get
 		{
@@ -48,12 +42,32 @@ public class SoundManager : MonoBehaviour
 		}
 	}
 
+	void Awake()
+	{
+		Init();
+	}
+
 	private void Init()
 	{
-		// add sounds to sounds dictionary
-		foreach (SoundEntry s in soundsList)
+		// Cache all sounds in the tree
+		var audioSources = gameObject.GetComponentsInChildren<AudioSource>(true);
+		for (int i = 0; i < audioSources.Length; i++)
 		{
-			sounds.Add(s.name, s.source);
+			if (audioSources[i].gameObject.tag == "AmbientSound")
+			{
+				ambientTracks.Add(audioSources[i]);
+				continue;
+
+			}
+			if (audioSources[i].gameObject.tag == "Music")
+			{
+				musicTracks.Add(audioSources[i]);
+				continue;
+			}
+			if (audioSources[i].gameObject.tag == "SoundFX")
+			{
+				sounds.Add(audioSources[i].name, audioSources[i]);
+			}
 		}
 	}
 
@@ -63,6 +77,7 @@ public class SoundManager : MonoBehaviour
 		{
 			track.Stop();
 		}
+		Synth.Instance.StopMusic();
 	}
 
 	public static void StopAmbient()
@@ -82,6 +97,7 @@ public class SoundManager : MonoBehaviour
 		Instance.sounds[name].time = time;
 		Instance.sounds[name].volume = volume;
 		Instance.sounds[name].Play();
+		//Set to cache incase it was changed
 	}
 
 	public static void Play(string name)
@@ -97,20 +113,48 @@ public class SoundManager : MonoBehaviour
 		}
 	}
 
-	public static void PlayAtPosition(string name, Vector3 pos)
+	public static void PlayAtPosition(string name, Vector3 pos, float pitch = -1)
 	{
 		if (Instance.sounds.ContainsKey(name))
 		{
+			if (pitch > 0)
+			{
+				Instance.sounds[name].pitch = pitch;
+			}
 			Instance.sounds[name].transform.position = pos;
 			Instance.sounds[name].Play();
+			//Set to cache incase it was changed
 		}
+	}
+
+	[ContextMenu("PlayRandomMusicTrack")]
+	public void PlayRndTrackEditor()
+	{
+		PlayRandomTrack();
 	}
 
 	public static void PlayRandomTrack()
 	{
 		StopMusic();
-		int randTrack = Random.Range(0, Instance.musicTracks.Length);
-		Instance.musicTracks[randTrack].Play();
+		if (Random.Range(0, 2).Equals(0))
+		{
+			//Traditional music
+			int randTrack = Random.Range(0, Instance.musicTracks.Count);
+			Instance.musicTracks[randTrack].volume = Instance.MusicVolume;
+			Instance.musicTracks[randTrack].Play();
+		}
+		else
+		{
+			//Tracker music
+			var trackerMusic = new []
+			{
+				"spaceman.xm",
+				"echo_sound.xm",
+				"tintin.xm"
+			};
+			var vol = 255 * Instance.MusicVolume;
+			Synth.Instance.PlayMusic(trackerMusic.Wrap(Random.Range(1, 100)), false, (byte)(int)vol);
+		}
 	}
 
 	public static void PlayVarAmbient(int variant)

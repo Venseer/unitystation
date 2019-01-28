@@ -1,15 +1,18 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
-using PlayGroup;
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.Rendering;
 
 public class GameManager : MonoBehaviour
 {
 	public static GameManager Instance;
-	public float RoundTime = 480f;
+
+	//TODO: How to network this and change before connecting:
+	public GameMode gameMode = GameMode.nukeops; //for demo
+	public float RoundTime = 660f; //10 minutes nuke ops time + 1 minute shuttle escape, might have to adjust this in future with other modes.
 	public bool counting;
 	public List<GameObject> Occupations = new List<GameObject>();
 	public float restartTime = 10f;
@@ -23,18 +26,34 @@ public class GameManager : MonoBehaviour
 	public GameObject StandardOutfit;
 	public bool waitForRestart;
 
-	public float GetRoundTime { get; private set; } = 480f;
+	public float GetRoundTime { get; private set; } = 660f;
 
 	public int RoundsPerMap = 10;
-	
-	public string[] Maps = {"Assets/scenes/OutpostDeathmatch.unity", "Assets/scenes/Flashlight Deathmatch.unity"};
-	
+
+	public string[] Maps = { "Assets/scenes/OutpostStation.unity" };
+	//Put the scenes in the unity 3d editor.
+
 	private int MapRotationCount = 0;
 	private int MapRotationMapsCounter = 0;
 
+	private bool shuttleArrivalBroadcasted = false;
 
-	//Put the scenes in the unity 3d editor.
+	//Nuke ops:
+	public bool shuttleArrived = false;
 
+	public bool GameOver = false;
+
+	//Space bodies in the solar system <Only populated ServerSide>:
+	//---------------------------------
+	public List<MatrixMove> SpaceBodies = new List<MatrixMove>();
+	private Queue<MatrixMove> PendingSpaceBodies = new Queue<MatrixMove>();
+	private bool isProcessingSpaceBody = false;
+	public float minDistanceBetweenSpaceBodies = 200f;
+	[Header("Define the default size of all SolarSystems here:")]
+	public float solarSystemRadius = 600f;
+	//---------------------------------
+
+	public CentComm CentComm;
 
 	private void Awake()
 	{
@@ -58,18 +77,91 @@ public class GameManager : MonoBehaviour
 		SceneManager.sceneLoaded -= OnLevelFinishedLoading;
 	}
 
-	private void OnValidate()
+	///<summary>
+	/// This is for any space object that needs to be randomly placed in the solar system 
+	/// (See Asteroid.cs for example of use)
+	/// Please make sure matrixMove.State.position != TransformState.HiddenPos when calling this function
+	///</summary>
+	public void ServerSetSpaceBody(MatrixMove mm)
 	{
-		if (Occupations.All(o => o.GetComponent<OccupationRoster>().Type != JobType.ASSISTANT))
+		if (mm.State.Position == TransformState.HiddenPos)
 		{
-			Debug.LogError("There is no ASSISTANT job role defined in the the GameManager Occupation rosters");
+			Logger.LogError("Matrix Move is not initialized! Wait for it to be" +
+				"ready before calling ServerSetSpaceBody ");
+			return;
 		}
+
+		PendingSpaceBodies.Enqueue(mm);
 	}
+
+	IEnumerator ProcessSpaceBody(MatrixMove mm)
+	{
+		bool validPos = false;
+		while (!validPos)
+		{
+			Vector3 proposedPosition = RandomPositionInSolarSystem();
+			bool failedChecks = false;
+			//Make sure it is away from the middle of space matrix
+			if (Vector3.Distance(proposedPosition,
+					MatrixManager.Instance.spaceMatrix.transform.parent.transform.position) <
+				minDistanceBetweenSpaceBodies)
+			{
+				failedChecks = true;
+			}
+
+			for (int i = 0; i < SpaceBodies.Count; i++)
+			{
+				if (Vector3.Distance(proposedPosition, SpaceBodies[i].transform.position) < minDistanceBetweenSpaceBodies)
+				{
+					failedChecks = true;
+				}
+			}
+			if (!failedChecks)
+			{
+				validPos = true;
+				mm.SetPosition(proposedPosition);
+				SpaceBodies.Add(mm);
+			}
+			yield return YieldHelper.EndOfFrame;
+		}
+		yield return YieldHelper.EndOfFrame;
+		isProcessingSpaceBody = false;
+	}
+
+	public Vector3 RandomPositionInSolarSystem()
+	{
+		return Random.insideUnitCircle * solarSystemRadius;
+	}
+
+	//	private void OnValidate() 
+	//	{
+	//		if (Occupations.All(o => o.GetComponent<OccupationRoster>().Type != JobType.ASSISTANT)) //wtf is that about
+	//		{
+	//			Logger.LogError("There is no ASSISTANT job role defined in the the GameManager Occupation rosters");
+	//		}
+	//	}
 
 	private void OnLevelFinishedLoading(Scene scene, LoadSceneMode mode)
 	{
 		GetRoundTime = RoundTime;
+		GameOver = false;
+		RespawnAllowed = true;
+		SpaceBodies.Clear();
+		PendingSpaceBodies = new Queue<MatrixMove>();
+		// if (scene.name != "Lobby")
+		// {
+		// 	SetUpGameMode();
+		// }
 	}
+
+	//this could all still be used in the future for selecting traitors/culties/revs at game start:
+	// private void SetUpGameMode()
+	// {
+	// 	if(gameMode == GameMode.nukeops){
+	// 		//Show nuke opes selection
+	// 		Debug.Log("TODO Set up UI for nuke ops game");
+	// 	}
+	// }
 
 	public void SyncTime(float currentTime)
 	{
@@ -94,6 +186,12 @@ public class GameManager : MonoBehaviour
 
 	private void Update()
 	{
+		if (!isProcessingSpaceBody && PendingSpaceBodies.Count > 0)
+		{
+			isProcessingSpaceBody = true;
+			StartCoroutine(ProcessSpaceBody(PendingSpaceBodies.Dequeue()));
+		}
+
 		if (waitForRestart)
 		{
 
@@ -109,12 +207,12 @@ public class GameManager : MonoBehaviour
 		{
 			GetRoundTime -= Time.deltaTime;
 			roundTimer.text = Mathf.Floor(GetRoundTime / 60).ToString("00") + ":" +
-			                  (GetRoundTime % 60).ToString("00");
+				(GetRoundTime % 60).ToString("00");
 			if (GetRoundTime <= 0f)
 			{
 				counting = false;
 				roundTimer.text = "GameOver";
-				
+
 				// Prevents annoying sound duplicate when testing
 				if (SystemInfo.graphicsDeviceType != GraphicsDeviceType.Null && !GameData.Instance.testServer)
 				{
@@ -126,6 +224,12 @@ public class GameManager : MonoBehaviour
 					waitForRestart = true;
 					PlayerList.Instance.ReportScores();
 				}
+			}
+			//Nuke ops shuttle arrival
+			if (shuttleArrived == true && shuttleArrivalBroadcasted == false)
+			{
+				PostToChatMessage.Send("Escape shuttle has arrived! Crew has 1 minute to get on it.", ChatChannel.System);
+				shuttleArrivalBroadcasted = true;
 			}
 		}
 	}
@@ -139,20 +243,40 @@ public class GameManager : MonoBehaviour
 			return 0;
 		}
 
-		for ( var i = 0; i < PlayerList.Instance.ClientConnectedPlayers.Count; i++ )
+		for (var i = 0; i < PlayerList.Instance.ClientConnectedPlayers.Count; i++)
 		{
 			var player = PlayerList.Instance.ClientConnectedPlayers[i];
-			if ( player.Job == jobType )
+			if (player.Job == jobType)
 			{
 				count++;
 			}
 		}
 
-		if ( count != 0 )
+		if (count != 0)
 		{
-			Debug.Log($"{jobType} count: {count}");
+			Logger.Log($"{jobType} count: {count}", Category.Jobs);
 		}
 		return count;
+	}
+
+	public int GetNanoTrasenCount()
+	{
+		if (PlayerList.Instance == null || PlayerList.Instance.ClientConnectedPlayers.Count == 0)
+		{
+			return 0;
+		}
+
+		int startCount = 0;
+
+		for (var i = 0; i < PlayerList.Instance.ClientConnectedPlayers.Count; i++)
+		{
+			var player = PlayerList.Instance.ClientConnectedPlayers[i];
+			if (player.Job != JobType.SYNDICATE && player.Job != JobType.NULL)
+			{
+				startCount++;
+			}
+		}
+		return startCount;
 	}
 
 	public int GetOccupationMaxCount(JobType jobType)
@@ -175,7 +299,7 @@ public class GameManager : MonoBehaviour
 		if (jobTypeRequest != JobType.NULL)
 		{
 			foreach (GameObject jobObject in Occupations.Where(o =>
-				o.GetComponent<OccupationRoster>().Type == jobTypeRequest))
+					o.GetComponent<OccupationRoster>().Type == jobTypeRequest))
 			{
 				OccupationRoster job = jobObject.GetComponent<OccupationRoster>();
 				if (job.limit != -1)
@@ -216,21 +340,16 @@ public class GameManager : MonoBehaviour
 	{
 		if (CustomNetworkManager.Instance._isServer)
 		{
-			MapRotationCount++;
-			if (MapRotationCount < RoundsPerMap * Maps.Length) 
-			{
-				if ((MapRotationCount % RoundsPerMap) == 0) 
-				{
-					MapRotationMapsCounter++;
-				}
-			}
-			else
-			{
-				MapRotationCount = 0;
-				MapRotationMapsCounter = 0;
-			}
-			
-			CustomNetworkManager.Instance.ServerChangeScene (Maps[MapRotationMapsCounter]);
+			//TODO allow map change from admin portal
+			// until then it is just OPDM on repeat:
+
+			CustomNetworkManager.Instance.ServerChangeScene(Maps[0]);
 		}
 	}
+}
+
+public enum GameMode
+{
+	extended,
+	nukeops
 }

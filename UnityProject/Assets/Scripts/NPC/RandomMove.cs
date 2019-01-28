@@ -1,21 +1,20 @@
 ﻿using System.Collections;
-using Tilemaps;
 using UnityEngine;
 using UnityEngine.Networking;
 
-namespace NPC
-{
+
 	public class RandomMove : NetworkBehaviour
 	{
-		private HealthBehaviour _healthBehaviour;
+		private LivingHealthBehaviour _healthBehaviour;
 		private Matrix _matrix;
 		private Vector3Int currentPosition, targetPosition, currentDirection;
 		private bool isRight;
+		private Coroutine coRandMove;
 		public float speed = 6f;
 
 		private void Start()
 		{
-			_healthBehaviour = GetComponent<HealthBehaviour>();
+			_healthBehaviour = GetComponent<LivingHealthBehaviour>();
 			targetPosition = Vector3Int.RoundToInt(transform.position);
 			currentPosition = targetPosition;
 		}
@@ -30,9 +29,9 @@ namespace NPC
 
 		public override void OnStartServer()
 		{
-			if (isServer)
+			if (isServer && coRandMove == null)
 			{
-				StartCoroutine(RandMove());
+				coRandMove = StartCoroutine(RandMove());
 			}
 			base.OnStartServer();
 		}
@@ -47,7 +46,10 @@ namespace NPC
 
 		private void OnDisable()
 		{
-			StopCoroutine(RandMove());
+			if (coRandMove != null) {
+				StopCoroutine(coRandMove);
+				coRandMove = null;
+			}
 		}
 
 		private void OnTriggerExit2D(Collider2D coll)
@@ -153,4 +155,3 @@ namespace NPC
 			return false;
 		}
 	}
-}

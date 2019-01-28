@@ -1,8 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-namespace Doors
-{
+
 	/// <summary>
 	///     Window door animator. For controlling glass sliding door
 	///     animations.
@@ -82,7 +81,7 @@ namespace Doors
 				yield return new WaitForSeconds(0.1f);
 			}
 			doorbase.sprite = sprites[closeFrame + (int) direction];
-			doorController.isPerformingAction = false;
+			doorController.OnAnimationFinished();
 		}
 
 		private IEnumerator PlayOpenAnim()
@@ -99,7 +98,7 @@ namespace Doors
 			}
 
 			doorbase.sprite = sprites[openFrame + (int) direction];
-			doorController.isPerformingAction = false;
+			doorController.OnAnimationFinished();
 		}
 
 
@@ -116,10 +115,10 @@ namespace Doors
 				{
 					doorbase.sprite = sprites[closeFrame + (int) direction];
 				}
+				light = !light;
 				yield return new WaitForSeconds(0.05f);
 			}
 			doorbase.sprite = sprites[closeFrame + (int) direction];
-			doorController.isPerformingAction = false;
+			doorController.OnAnimationFinished();
 		}
 	}
-}

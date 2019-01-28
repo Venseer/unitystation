@@ -1,14 +1,12 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace UI
-{
 	public enum Intent
 	{
 		Help,
 		Disarm,
-		Hold,
-		Attack
+		Grab,
+		Harm
 	}
 
 	public class ControlIntent : MonoBehaviour
@@ -18,14 +16,14 @@ namespace UI
 
 		private void Start()
 		{
-			UIManager.CurrentIntent = Intent.Help;
 			thisImg = GetComponent<Image>();
+			SetIntent(Intent.Help);
 		}
 
 		//OnClick method
 		public void IntentButton()
 		{
-			Debug.Log("Intent Button");
+			Logger.Log("Intent Button", Category.UI);
 
 			SoundManager.Play("Click01");
 
@@ -37,12 +35,33 @@ namespace UI
 			thisImg.sprite = sprites[intent];
 		}
 
-        //Hotkey method
-        public void IntentHotkey(int intent)
-        {
-            UIManager.CurrentIntent = (Intent) intent;
+		public void CycleIntent(bool cycleLeft = true)
+		{
+			Logger.Log("Intent cycling " + (cycleLeft ? "left" : "right"), Category.UI);
+			SoundManager.Play("Click01");
 
-            thisImg.sprite = sprites[intent];
+			int intent = (int) UIManager.CurrentIntent;
+			intent += (cycleLeft ? 1 : -1);
+
+			// Assuming we never add more than 4 intents
+			if (intent == -1)
+			{
+				intent = 3;
+			}
+			else if (intent == 4)
+			{
+				intent = 0;
+			}
+
+			UIManager.CurrentIntent = (Intent) intent;
+			thisImg.sprite = sprites[intent];
+		}
+
+        //Hotkey method
+        public void SetIntent(Intent intent)
+        {
+            UIManager.CurrentIntent = intent;
+
+            thisImg.sprite = sprites[(int)intent];
         }
 	}
-}

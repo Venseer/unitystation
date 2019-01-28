@@ -1,5 +1,4 @@
-﻿using PlayGroup;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Networking;
 
 /// Server-only full player information class
@@ -14,7 +13,10 @@ public class ConnectedPlayer
     /// Flags if player received a bunch of sync messages upon joining
     private bool synced;
 
-    public bool IsAuthenticated => steamId != 0;
+	//Name that is used if the client's character name is empty
+	private const string DEAFAULT_NAME = "Anonymous Spessman";
+
+	public bool IsAuthenticated => steamId != 0;
 
     public static readonly ConnectedPlayer Invalid = new ConnectedPlayer
     {
@@ -77,10 +79,11 @@ public class ConnectedPlayer
         get { return steamId; }
         set
         {
+			
             if ( value != 0 )
             {
                 steamId = value;
-                Debug.Log( $"Updated steamID! {this}" );
+				Logger.Log( $"Updated steamID! {this}" , Category.Steam);
             }
         }
     }
@@ -105,16 +108,42 @@ public class ConnectedPlayer
         return name == null || name.Trim().Equals("");
     }
 
+	/// <summary>
+	/// Checks against a set of rules for user names like Null or whitespace
+	/// </summary>
+	/// <param name="newName"></param>
+	/// <returns>True if the name passes all tests, false if it does not</returns>
+	public static bool isValidName(string newName)
+	{
+		if (string.IsNullOrWhiteSpace(newName))
+		{
+			return false;
+		}else{
+			return true;
+		}
+	}
+
     private void TryChangeName(string playerName)
     {
-        if ( playerName == null || playerName.Trim().Equals("") || name == playerName )
-        {
-            return;
-        }
+		//When a ConnectedPlayer object is initialised it has a null value
+		//We want to make sure that it gets set to something if the client requested something bad
+		//Issue #1377
+		if (isValidName(playerName) == false)
+		{
+			Logger.LogWarning("Attempting to assign invalid name to ConnectedPlayer. Assigning default name " + DEAFAULT_NAME + " instead");
+			playerName = DEAFAULT_NAME;
+		}
+
+		//Player name is unchanged, return early.
+		if(playerName == name)
+		{
+			return;
+		}
+
         var playerList = PlayerList.Instance;
         if ( playerList == null )
         {
-//			Debug.Log("PlayerList not instantiated, setting name blindly");
+//			Logger.Log("PlayerList not instantiated, setting name blindly");
             name = playerName;
             return;
         }
@@ -135,11 +164,11 @@ public class ConnectedPlayer
         if ( sameNames != 0 )
         {
             proposedName = $"{name}{sameNames + 1}";
-            Debug.Log($"TRYING: {proposedName}");
+            Logger.LogTrace($"TRYING: {proposedName}", Category.Connections);
         }
         if ( PlayerList.Instance.ContainsName(proposedName) )
         {
-            Debug.Log($"NAME ALREADY EXISTS: {proposedName}");
+            Logger.LogTrace($"NAME ALREADY EXISTS: {proposedName}", Category.Connections);
             sameNames++;
             return GetUniqueName(name, sameNames);
         }

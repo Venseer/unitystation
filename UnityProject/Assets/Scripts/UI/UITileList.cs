@@ -1,13 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using Light2D;
-using PlayGroup;
-using Tilemaps;
-using Tilemaps.Behaviours.Layers;
-using Tilemaps.Behaviours.Objects;
-using Tilemaps.Tiles;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -45,12 +37,16 @@ public class UITileList : MonoBehaviour
 	/// <param name="position">Position where to look for items</param>
 	public static List<GameObject> GetItemsAtPosition(Vector3 position)
 	{
-		Matrix matrix = PlayerManager.LocalPlayerScript.gameObject.GetComponentInParent<Matrix>();
-		
+		Matrix matrix = PlayerManager.LocalPlayerScript?.gameObject.GetComponentInParent<Matrix>();
+		if ( !matrix )
+		{
+			return new List<GameObject>();
+		}
+
 		position = matrix.transform.InverseTransformPoint(position);
 		Vector3Int tilePosition = Vector3Int.FloorToInt(position);
 
-		IEnumerable<RegisterTile> registerTiles = matrix.Get<RegisterTile>(tilePosition);
+		var registerTiles = matrix.Get<RegisterTile>(tilePosition);
 
 		return registerTiles.Select(x => x.gameObject).ToList();
 	}
@@ -62,7 +58,7 @@ public class UITileList : MonoBehaviour
 	public static LayerTile GetTileAtPosition(Vector3 position)
 	{
 		MetaTileMap metaTileMap = PlayerManager.LocalPlayerScript.gameObject.GetComponentInParent<MetaTileMap>();
-		
+
 		position = metaTileMap.transform.InverseTransformPoint(position);
 		Vector3Int tilePosition = Vector3Int.FloorToInt(position);
 
@@ -139,7 +135,7 @@ public class UITileList : MonoBehaviour
 
 		IEnumerable<GameObject> newList = GetItemsAtPosition(position);
 		LayerTile newTile = GetTileAtPosition(position);
-		
+
 		List<GameObject> oldList = new List<GameObject>();
 
 		foreach (GameObject gameObject in Instance.listedObjects)
@@ -167,7 +163,7 @@ public class UITileList : MonoBehaviour
 		{
 			AddTileToItemPanel(tile, position);
 		}
-			
+
 		foreach (GameObject itemObject in objects)
 		{
 			AddObjectToItemPanel(itemObject);
@@ -202,7 +198,7 @@ public class UITileList : MonoBehaviour
 	{
 		if (!Instance.listedObjects.Contains(tileListItemObject))
 		{
-			Debug.LogError("Attempted to remove tileListItem not on list");
+			Logger.LogError("Attempted to remove tileListItem not on list", Category.UI);
 			return;
 		}
 

@@ -1,7 +1,4 @@
 ﻿using System.Collections;
-using PlayGroup;
-using PlayGroups.Input;
-using UI;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -58,7 +55,7 @@ public class FireCabinetTrigger : InputTrigger
 		SyncItemSprite(isFull);
 	}
 
-	public override void Interact(GameObject originator, Vector3 position, string hand)
+	public override bool Interact(GameObject originator, Vector3 position, string hand)
 	{
 		if (IsClosed)
 		{
@@ -100,6 +97,8 @@ public class FireCabinetTrigger : InputTrigger
 				}
 			}
 		}
+
+		return true;
 	}
 
 	private void HandleInteraction(bool forItemInteract, string currentHand)

@@ -1,8 +1,6 @@
 ﻿using System.Collections;
-using PlayGroup;
 using UnityEngine;
 using UnityEngine.Networking;
-using Weapons;
 
 public class WeaponNetworkActions : ManagedNetworkBehaviour
 {
@@ -14,7 +12,7 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 
 	private bool isForLerpBack;
 	private Vector3 lerpFrom;
-	private bool lerping;
+	public bool lerping { get; private set; } //needs to be read by Camera2DFollow
 
 	private float lerpProgress;
 
@@ -46,7 +44,7 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 	{
 		Weapon w = weapon.GetComponent<Weapon>();
 		NetworkInstanceId networkID = magazine.GetComponent<NetworkIdentity>().netId;
-		w.MagNetID = networkID;
+		w.ServerHandleReloadRequest(networkID);
 		GetComponent<PlayerNetworkActions>().ClearInventorySlot(hand);
 	}
 
@@ -54,58 +52,89 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 	public void CmdUnloadWeapon(GameObject weapon)
 	{
 		Weapon w = weapon.GetComponent<Weapon>();
-		NetworkInstanceId networkID = NetworkInstanceId.Invalid;
-		w.MagNetID = networkID;
+
+		var cnt = w.CurrentMagazine?.GetComponent<CustomNetTransform>();
+		if(cnt != null)
+		{
+			cnt.InertiaDrop(transform.position, playerMove.speed, playerScript.PlayerSync.ServerState.Impulse);
+		} else {
+			Logger.Log("Magazine not found for unload weapon", Category.Firearms);
+		}
+
+		w.ServerHandleUnloadRequest();
 	}
 
-	[Command] 
-	public void CmdRequestMeleeAttack(GameObject victim, string slot, Vector2 stabDirection, BodyPartType damageZone)
+	[Command]
+	public void CmdRequestMeleeAttack(GameObject victim, string slot, Vector2 stabDirection,
+		BodyPartType damageZone, LayerType layerType)
 	{
-		if (!playerMove.allowInput 
-		    || playerMove.isGhost
-		    || !victim
-		    || !playerScript.playerNetworkActions.SlotNotEmpty( slot ) 
-		    || !PlayerManager.PlayerInReach( victim.transform )
-		    ) {
+		if (!playerMove.allowInput ||
+			playerMove.isGhost ||
+			!victim ||
+			!playerScript.playerNetworkActions.SlotNotEmpty(slot) ||
+			!playerScript.playerHealth.serverPlayerConscious
+		)
+		{
 			return;
 		}
-		var weapon = playerScript.playerNetworkActions.Inventory[slot];
-		ItemAttributes weaponAttr = weapon.GetComponent<ItemAttributes>();
-		HealthBehaviour victimHealth = victim.GetComponent<HealthBehaviour>();
-
-
-		// checks object and component existence before defining healthBehaviour variable.
-		if (victimHealth.IsDead == false)
+		if (!allowAttack)
 		{
-			if (!allowAttack)
-			{
-				return;
-			}
-
-			if (victim != gameObject)
-			{
-				RpcMeleeAttackLerp(stabDirection, weapon);
-			}
-
-			victimHealth.ApplyDamage(gameObject, ( int ) weaponAttr.hitDamage, DamageType.BRUTE, damageZone);
-			if ( weaponAttr.hitDamage > 0 ) {
-				PostToChatMessage.SendItemAttackMessage( weapon, gameObject, victim, (int)weaponAttr.hitDamage, damageZone );
-			}
-
-			soundNetworkActions.RpcPlayNetworkSound(weaponAttr.hitSound, transform.position);
-			StartCoroutine(AttackCoolDown());
-
+			return;
 		}
-		else
+
+		var weapon = playerScript.playerNetworkActions.Inventory[slot].Item;
+		ItemAttributes weaponAttr = weapon.GetComponent<ItemAttributes>();
+
+		// If Tilemap LayerType is not None then it is a tilemap being attacked
+		if (layerType != LayerType.None)
 		{
-			//Butchering if we can
-			if ( weaponAttr.type != ItemType.Knife ) {
+			TileChangeManager tileChangeManager = victim.GetComponent<TileChangeManager>();
+			MetaTileMap metaTileMap = victim.GetComponent<MetaTileMap>();
+			if (tileChangeManager == null)
+			{
 				return;
 			}
+
+			//Tilemap stuff:
+			var tileMapDamage = metaTileMap.Layers[layerType].GetComponent<TilemapDamage>();
+			if (tileMapDamage != null)
+			{
+				//Wire cutters should snip the grills instead:
+				if (weaponAttr.itemName == "wirecutters" &&
+					tileMapDamage.Layer.LayerType == LayerType.Grills)
+				{
+					tileMapDamage.WireCutGrill((Vector2) transform.position + stabDirection);
+					StartCoroutine(AttackCoolDown());
+					return;
+				}
+
+				tileMapDamage.DoMeleeDamage((Vector2) transform.position + stabDirection,
+					gameObject, (int) weaponAttr.hitDamage);
+
+				playerMove.allowInput = false;
+				RpcMeleeAttackLerp(stabDirection, weapon);
+				StartCoroutine(AttackCoolDown());
+				return;
+			}
+			return;
+		}
+
+		//This check cannot be used with TilemapDamage as the transform position is always far away
+		if (!playerScript.IsInReach(victim))
+		{
+			return;
+		}
+
+		//Meaty bodies:
+		LivingHealthBehaviour victimHealth = victim.GetComponent<LivingHealthBehaviour>();
+
+		if (victimHealth.IsDead && weaponAttr.type == ItemType.Knife)
+		{
 			if (victim.GetComponent<SimpleAnimal>())
 			{
 				SimpleAnimal attackTarget = victim.GetComponent<SimpleAnimal>();
 				RpcMeleeAttackLerp(stabDirection, weapon);
+				playerMove.allowInput = false;
 				attackTarget.Harvest();
 				soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
 			}
@@ -113,10 +142,28 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 			{
 				PlayerHealth attackTarget = victim.GetComponent<PlayerHealth>();
 				RpcMeleeAttackLerp(stabDirection, weapon);
+				playerMove.allowInput = false;
 				attackTarget.Harvest();
 				soundNetworkActions.RpcPlayNetworkSound("BladeSlice", transform.position);
 			}
+			return;
 		}
+
+		if (victim != gameObject)
+		{
+			RpcMeleeAttackLerp(stabDirection, weapon);
+			playerMove.allowInput = false;
+		}
+
+		victimHealth.ApplyDamage(gameObject, (int) weaponAttr.hitDamage, DamageType.Brute, damageZone);
+		if (weaponAttr.hitDamage > 0)
+		{
+			PostToChatMessage.SendItemAttackMessage(weapon, gameObject, victim, (int) weaponAttr.hitDamage, damageZone);
+		}
+
+		soundNetworkActions.RpcPlayNetworkSound(weaponAttr.hitSound, transform.position);
+		StartCoroutine(AttackCoolDown());
+
 	}
 
 	private IEnumerator AttackCoolDown(float seconds = 0.5f)
@@ -127,7 +174,6 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 	}
 
 	// Harvest should only be used for animals like pete and cows
-
 
 	[ClientRpc]
 	private void RpcMeleeAttackLerp(Vector2 stabDir, GameObject weapon)
@@ -146,10 +192,6 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 		if (lerpSprite != null)
 		{
 			playerScript.hitIcon.ShowHitIcon(stabDir, lerpSprite);
-			if (PlayerManager.LocalPlayer && PlayerManager.LocalPlayer.gameObject.name == gameObject.name)
-			{
-				PlayerManager.LocalPlayerScript.playerMove.allowInput = true;
-			}
 		}
 		lerpFrom = transform.position;
 		Vector3 newDir = stabDir * 0.5f;
@@ -158,6 +200,19 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 		lerpProgress = 0f;
 		isForLerpBack = true;
 		lerping = true;
+	}
+
+	[Command]
+	private void CmdRequestInputActivation()
+	{
+		if (playerScript.playerHealth.serverPlayerConscious)
+		{
+			playerMove.allowInput = true;
+		}
+		else
+		{
+			playerMove.allowInput = false;
+		}
 	}
 
 	//Server lerps
@@ -173,10 +228,13 @@ public class WeaponNetworkActions : ManagedNetworkBehaviour
 				{
 					ResetLerp();
 					spritesObj.transform.localPosition = Vector3.zero;
-						if (PlayerManager.LocalPlayer && PlayerManager.LocalPlayer.gameObject.name == gameObject.name)
+					if (PlayerManager.LocalPlayer)
+					{
+						if (PlayerManager.LocalPlayer == gameObject)
 						{
-							PlayerManager.LocalPlayerScript.playerMove.allowInput = true;
+							CmdRequestInputActivation(); //Ask server if you can move again after melee attack
 						}
+					}
 				}
 				else
 				{

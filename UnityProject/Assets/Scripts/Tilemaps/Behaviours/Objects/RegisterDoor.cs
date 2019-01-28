@@ -1,18 +1,16 @@
-﻿using Tilemaps.Behaviours.Meta;
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tilemaps.Behaviours.Objects
-{
+
 	[ExecuteInEditMode]
 	public class RegisterDoor : RegisterTile
 	{
-		private SystemManager systemManager;
-		
+		private SubsystemManager subsystemManager;
+
 		public bool OneDirectionRestricted;
 
 		private void Awake()
 		{
-			systemManager = GetComponentInParent<SystemManager>();
+			subsystemManager = GetComponentInParent<SubsystemManager>();
 		}
 
 		[SerializeField]
@@ -26,12 +24,12 @@ namespace Tilemaps.Behaviours.Objects
 				if (isClosed != value)
 				{
 					isClosed = value;
-					systemManager.UpdateAt(Position);
+					subsystemManager.UpdateAt(Position);
 				}
 			}
 		}
 
-		public override bool IsPassable(Vector3Int to)
+		public override bool IsPassableTo( Vector3Int to )
 		{
 			if (isClosed && OneDirectionRestricted)
 			{
@@ -41,6 +39,12 @@ namespace Tilemaps.Behaviours.Objects
 			}
 
 			return !isClosed;
+		}
+
+		public override bool IsPassable( Vector3Int from )
+		{
+			// Entering and leaving is the same check
+			return IsPassableTo( from );
 		}
 
 		public override bool IsPassable()
@@ -53,4 +57,3 @@ namespace Tilemaps.Behaviours.Objects
 			return !isClosed;
 		}
 	}
-}

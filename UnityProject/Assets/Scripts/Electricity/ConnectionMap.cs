@@ -1,8 +1,4 @@
-﻿using System;
-using UnityEngine;
-
-namespace Electricity{
-	
+﻿	
 	public static class ConnectionMap {
 		/// <summary>
 		/// Given the output position of a wire and an adjacent tile to check
@@ -58,18 +54,27 @@ namespace Electricity{
 					}
 				}
 			}
+
+		/// <summary>
+		///     Returns a struct with both connection points as members
+		///     the connpoint connection positions are represented using 4 bits to indicate N S E W - 1 2 4 8
+		///     Corners can also be used i.e.: 5 = NE (1 + 4) = 0101
+		///     This is the edge of the location where the input connection enters the turf
+		///     Use 0 for Machines or grills that can conduct electricity from being placed ontop of any wire configuration
+		/// </summary>
 			if (adjTile == AdjDir.Overlap) {
-				if (originP.pointA == 0 || originP.pointB == 0 ||
-				    originP.pointA == 1 && originP.pointB == 2 ||
-				    originP.pointA == 2 && originP.pointB == 1 ||
-				    originP.pointA == 4 && originP.pointB == 8 ||
-				    originP.pointA == 8 && originP.pointB == 4) {
+				if (originP.pointA == 0 || originP.pointB == 0) {
 					if (adjP.pointA == 0 || adjP.pointB == 0) {
 						return true;
 					}
 				}
 			}
-
+		if (adjTile == AdjDir.W || adjTile == AdjDir.S || adjTile == AdjDir.N || adjTile == AdjDir.E)
+			//Logger.Log ("got here", Category.Electrical);
+			if (originP.pointB == 9 && adjP.pointB == 9) {
+			//Logger.Log ("yeah It happend", Category.Electrical);
+				return true;
+			}
 			return false;
 		}
 	}
@@ -84,11 +89,11 @@ namespace Electricity{
 		N,
 		SE,
 		E,
-		NE
+		NE,
+		MachineConnect,
 	}
 
 	public struct ConnPoint{
 		public int pointA;
 		public int pointB;
 	}
-}

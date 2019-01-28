@@ -1,26 +1,38 @@
-﻿using System.Linq;
-using Light2D;
-using Tilemaps.Tiles;
-using UnityEngine;
-
-namespace Tilemaps.Utils
+﻿public static class TileUtils
 {
-	public static class TileUtils
+	public static bool IsPassable(params BasicTile[] tile)
 	{
-		public static bool IsPassable(params BasicTile[] tile)
+		for (var i = 0; i < tile.Length; i++)
 		{
-			return tile.All(t => !t || t.IsPassable());
+			BasicTile t = tile[i];
+			if (t && !t.IsPassable())
+				return false;
 		}
-		
-		public static bool IsAtmosPassable(params BasicTile[] tile)
+
+		return true;
+	}
+
+	public static bool IsAtmosPassable(params BasicTile[] tile)
+	{
+		for (var i = 0; i < tile.Length; i++)
 		{
-			return tile.All(t => !t || t.IsAtmosPassable());
+			BasicTile t = tile[i];
+			if (t && !t.IsAtmosPassable())
+				return false;
 		}
-		
-		public static bool IsSpace(params BasicTile[] tile)
+
+		return true;
+	}
+
+	public static bool IsSpace(params BasicTile[] tile)
+	{
+		for (var i = 0; i < tile.Length; i++)
 		{
-			return tile.All(t => !t || t.IsSpace());
+			BasicTile t = tile[i];
+			if (t && !t.IsSpace())
+				return false;
 		}
-		
+
+		return true;
 	}
 }

@@ -1,26 +1,23 @@
-﻿using Tilemaps.Behaviours.Meta;
-using Tilemaps.Tiles;
-using Tilemaps.Utils;
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.Tilemaps;
 
-namespace Tilemaps.Behaviours.Layers
-{
+
 	[ExecuteInEditMode]
 	public class Layer : MonoBehaviour
 	{
-		private SystemManager systemManager;
-		
-		public LayerType LayerType; 
+		private SubsystemManager subsystemManager;
+
+		public LayerType LayerType;
 		protected Tilemap tilemap;
 
 		public BoundsInt Bounds => tilemap.cellBounds;
-		public Tilemap topLayerFX;
+
+		public Vector3Int WorldToCell(Vector3 pos) => tilemap.WorldToCell(pos);
 
 		public void Awake()
 		{
 			tilemap = GetComponent<Tilemap>();
-			systemManager = GetComponentInParent<SystemManager>();
+			subsystemManager = GetComponentInParent<SubsystemManager>();
 		}
 
 		public void Start()
@@ -32,55 +29,40 @@ namespace Tilemaps.Behaviours.Layers
 
 			if (MatrixManager.Instance == null)
 			{
-				Debug.LogError("Matrix Manager is missing from the scene");
+				Logger.LogError("Matrix Manager is missing from the scene", Category.Matrix);
 			}
 			else
 			{
+				// TODO Clean up
+
 				if (LayerType == LayerType.Walls)
 				{
-					if (topLayerFX != null) {
-						MatrixManager.Instance.wallsToTopLayerFX.Add(GetComponent<TilemapCollider2D>(), topLayerFX);
-					}
 					MatrixManager.Instance.wallsTileMaps.Add(GetComponent<TilemapCollider2D>(), tilemap);
 				}
+
 			}
 		}
 
-		public virtual bool IsPassableAt(Vector3Int from, Vector3Int to)
+		public virtual bool IsPassableAt( Vector3Int from, Vector3Int to, bool inclPlayers = true, GameObject context = null )
 		{
-			if (from == to)
-			{
-				return true;
-			}
-
-			BasicTile tileTo = tilemap.GetTile<BasicTile>(to);
-
-			return TileUtils.IsPassable(tileTo);
+			return !tilemap.HasTile(to) || tilemap.GetTile<BasicTile>(to).IsPassable();
 		}
 
-		public virtual bool IsPassableAt(Vector3Int position)
+		public virtual bool IsAtmosPassableAt(Vector3Int from, Vector3Int to)
 		{
-			BasicTile tile = tilemap.GetTile<BasicTile>(position);
-			return TileUtils.IsPassable(tile);
-		}
-
-		public virtual bool IsAtmosPassableAt(Vector3Int position)
-		{
-			BasicTile tile = tilemap.GetTile<BasicTile>(position);
-			return TileUtils.IsAtmosPassable(tile);
+			return !tilemap.HasTile(to) || tilemap.GetTile<BasicTile>(to).IsAtmosPassable();
 		}
 
 		public virtual bool IsSpaceAt(Vector3Int position)
 		{
-			BasicTile tile = tilemap.GetTile<BasicTile>(position);
-			return TileUtils.IsSpace(tile);
+			return !tilemap.HasTile(position) || tilemap.GetTile<BasicTile>(position).IsSpace();
 		}
 
 		public virtual void SetTile(Vector3Int position, GenericTile tile, Matrix4x4 transformMatrix)
 		{
 			tilemap.SetTile(position, tile);
 			tilemap.SetTransformMatrix(position, transformMatrix);
-			systemManager.UpdateAt(position);
+			subsystemManager.UpdateAt(position);
 		}
 
 		public virtual LayerTile GetTile(Vector3Int position)
@@ -90,13 +72,30 @@ namespace Tilemaps.Behaviours.Layers
 
 		public virtual bool HasTile(Vector3Int position)
 		{
-			return GetTile(position);
+			return tilemap.HasTile( position );
+//			return GetTile(position);
 		}
 
-		public virtual void RemoveTile(Vector3Int position)
+		public virtual void RemoveTile(Vector3Int position, bool removeAll=false)
 		{
-			tilemap.SetTile(position, null);
-			systemManager.UpdateAt(position);
+			if (removeAll)
+			{
+				position.z = 0;
+
+				while (tilemap.HasTile(position))
+				{
+					tilemap.SetTile(position, null);
+
+					position.z--;
+				}
+			}
+			else
+			{
+				tilemap.SetTile(position, null);
+			}
+
+			position.z = 0;
+			subsystemManager.UpdateAt(position);
 		}
 
 		public virtual void ClearAllTiles()
@@ -117,4 +116,3 @@ namespace Tilemaps.Behaviours.Layers
 		}
 #endif
 	}
-}
